@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8"><title>Park dump</title>
+<script type="module">
+// Layout identity pin: builds the park (optionally twice) and exposes JSON of the layout plus a hash of every mesh's vertex data.
+import * as THREE from 'three';
+import { buildPark } from '../src/park.js';
+
+function fnv(arr, h = 2166136261) {
+  const u = new Uint32Array(arr.buffer, arr.byteOffset, arr.length);
+  for (let i = 0; i < u.length; i++) { h ^= u[i]; h = Math.imul(h, 16777619) >>> 0; }
+  return h;
+}
+function meshHash(root) {
+  const out = [];
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    const row = { type: o.type, mat: o.material.type, pos: o.position.toArray().map((v) => +v.toFixed(5)), scl: o.scale.toArray().map((v) => +v.toFixed(5)), ud: o.userData, geo: {} };
+    for (const [k, a] of Object.entries(o.geometry.attributes)) if (k !== 'color' || o.material.vertexColors) row.geo[k] = [a.count, fnv(new Float32Array(a.array))];
+    if (o.geometry.index) row.idx = fnv(new Uint32Array(Uint32Array.from(o.geometry.index.array)));
+    if (o.isInstancedMesh) { row.im = fnv(new Float32Array(o.instanceMatrix.array)); row.ic = o.instanceColor ? fnv(new Float32Array(o.instanceColor.array)) : 0; }
+    out.push(row);
+  });
+  return out;
+}
+function dump() {
+  const scene = new THREE.Scene();
+  const park = buildPark(scene);
+  const root = scene.getObjectByName('park');
+  return JSON.stringify({
+    colliders: park.colliders, canopies: park.canopies, teamSpawns: park.teamSpawns, pickupSpots: park.pickupSpots, perch: park.perch,
+    meshes: meshHash(root),
+  });
+}
+window.dumpOnce = dump;
+window.dumpTwice = () => [dump(), dump()];
+window.ready = true;
+</script>

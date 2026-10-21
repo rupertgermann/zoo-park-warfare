@@ -1,0 +1,11 @@
+step	decision	evidence
+1	three.js procedural low-poly models instead of Meshy/Blender	no FAL_KEY in env or sibling repos; procedural keeps 15+ actors cheap and tunable
+2	single-screen species select over title+select	removes a click; karenwarfare also combines loadout+deploy
+3	5 teams x 3, first to 15 KOs, then truce boss phase	all 10 species rotate across matches; boss is winnable with allies
+4	pointer lock is source of truth for pause	Esc cannot re-grant pointer lock in Chrome, so Esc-to-resume would leave an uncontrollable game
+5	melee lunge + bot range fixes from critic harness	melee team wins 0% -> 9-31%; KO/D spread 0.87-1.14 across 12 species
+6	boss ring no longer follows target	running player hit rate 100% -> 0-13% (tools/sim/dodge.mjs)
+7	every match flows into the boss; phase-1 winner gets 1.3x boss damage crown	only 18/100 runs reached the boss before
+8	added Nilgans (rage special) and Halsbandsittich on user request	playtests clean; sittich needed 4 tuning passes
+9	round-2 fixes: boss finale slow-mo+banner, BENOMMEN state, crowns on winners, sound diet (far bot sfx skipped), camera min distance, clouds unlit	playtests clean; boss sim 65-110 s, 0-2 lives lost, 100% wins with autopilot
+10	removed digit hotkeys and bot-vs-bot kill feed rows and KO toast	remove-more-than-add; arrows/Enter/mouse cover selection

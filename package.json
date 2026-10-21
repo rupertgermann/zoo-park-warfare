@@ -1,0 +1,17 @@
+{
+  "name": "zoo-park-wars",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5199",
+    "build": "vite build",
+    "preview": "vite preview --port 5199"
+  },
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.64.1",
+    "vite": "^8.3.5"
+  }
+}

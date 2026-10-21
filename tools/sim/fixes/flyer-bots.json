@@ -1,0 +1,1 @@
+[{ "file": "/src/game.js", "find": "if (a.spec.flies && (t.isBoss ? t.pos.y > 4 : Math.random() < dt * 0.6)) c.jump = Math.random() < dt * 6;", "replace": "if (a.spec.flies && (t.isBoss ? t.pos.y > 4 : a.pos.y > 0.5 || Math.random() < dt * 0.4)) c.jump = Math.random() < dt * (t.isBoss ? 6 : a.pos.y > 0.5 ? 2.5 : 6);" }]

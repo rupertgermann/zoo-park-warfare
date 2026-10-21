@@ -1,0 +1,1 @@
+[{ "file": "/src/game.js", "find": "const range = p.kind === 'melee' ? 1.4 :", "replace": "const range = p.kind === 'melee' ? Math.max(0.6, p.range - 1.2) :" }]

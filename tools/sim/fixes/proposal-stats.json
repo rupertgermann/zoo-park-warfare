@@ -1,0 +1,73 @@
+{
+ "RULES": {
+  "koToWin": 20
+ },
+ "BOSS": {
+  "hp": 10000
+ },
+ "species": {
+  "gans": {
+   "hp": 190,
+   "speed": 7,
+   "primary": {
+    "dmg": 24,
+    "range": 7,
+    "knock": 3
+   }
+  },
+  "schwan": {
+   "hp": 260,
+   "speed": 6.4,
+   "primary": {
+    "lunge": 3,
+    "knock": 3
+   }
+  },
+  "kormoran": {
+   "hp": 140,
+   "primary": {
+    "dmg": 19
+   }
+  },
+  "nutria": {
+   "hp": 190,
+   "speed": 7.4,
+   "primary": {
+    "lunge": 3.5,
+    "knock": 2,
+    "range": 2.4,
+    "arc": 1.1
+   }
+  },
+  "kaninchen": {
+   "hp": 110,
+   "primary": {
+    "dmg": 14
+   }
+  },
+  "taube": {
+   "hp": 100,
+   "primary": {
+    "dmg": 22
+   }
+  },
+  "kraehe": {
+   "hp": 125
+  },
+  "elster": {
+   "hp": 105,
+   "primary": {
+    "dmg": 8
+   }
+  },
+  "ente": {
+   "hp": 130,
+   "primary": {
+    "dmg": 12
+   }
+  },
+  "mensch": {
+   "hp": 200
+  }
+ }
+}

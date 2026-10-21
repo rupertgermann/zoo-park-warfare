@@ -1,0 +1,4 @@
+node_modules
+dist
+.audit/shots
+.audit/sim
