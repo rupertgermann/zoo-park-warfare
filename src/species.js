@@ -10,7 +10,7 @@ export const SPECIES = [
     name: 'Kanadagans', team: 'Die Hup-Mafia', tagline: 'Laut. Territorial. Unaufhaltsam.',
     color: 0x5a4632, accent: 0xf2efe6, voice: 'honk',
     hp: 205, speed: 7, size: 0.75, swims: true, flies: false, jump: 6,
-    primary: { kind: 'cone', name: 'Hup-Welle', dmg: 24, rate: 0.5, range: 7, arc: 0.6, knock: 3, model: 'quack' },
+    primary: { kind: 'cone', name: 'Hup-Welle', dmg: 24, rate: 0.5, range: 7, arc: 0.6, knock: 3, model: 'honk' },
     special: { kind: 'dash', name: 'Gänsemarsch', desc: 'Stürmt nach vorn und rammt alles weg.', cd: 6, dmg: 40, dist: 11, knock: 14 },
   },
   {

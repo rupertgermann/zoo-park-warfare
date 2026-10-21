@@ -9,3 +9,11 @@ step	decision	evidence
 8	added Nilgans (rage special) and Halsbandsittich on user request	playtests clean; sittich needed 4 tuning passes
 9	round-2 fixes: boss finale slow-mo+banner, BENOMMEN state, crowns on winners, sound diet (far bot sfx skipped), camera min distance, clouds unlit	playtests clean; boss sim 65-110 s, 0-2 lives lost, 100% wins with autopilot
 10	removed digit hotkeys and bot-vs-bot kill feed rows and KO toast	remove-more-than-add; arrows/Enter/mouse cover selection
+11	rival specials name themselves above the caster's nameplate for 1.3 s (generic hook in special(), text from species.js)	.audit/shots/specials-D.png shows "Pharaonen-Zorn!", "Lebensklau!"; before, a hit from a rival special was an anonymous red flash
+12	ability chip padding bug: later `padding` shorthand cancelled padding-right, so the cooldown digit sat on long special names; widened chip to 180 px	.audit/shots/specials-A.png (before: digit over "Königliches Zischen") vs specials-D.png
+13	camera cuts instead of swooping when the goal is >8 m away (respawn, boss intro end); fight starts facing the boss	tools/moments.mjs: intro end was 12 frames of 1.3-6.7 m/frame swoop, now one 51 m cut; respawn one 14 m cut
+14	boss intro telephoto: FOV narrows with distance so the kingfisher fills the frame instead of being a dot	.audit/shots/moments-A.png (before) vs moments-C.png intro frames
+15	banner title size scales with its length (--len) so long titles stay one line	"DER EISVOGEL RASTET AUS!" wrapped into the toast (moments-B.png), now one line (moments-C.png); also covers "HALSBANDSITTICH GEWINNT"
+16	boss bar joins the cinematic fade, so the empty bar + "BENOMMEN!" chip no longer linger through the KO shot and behind the result card	.audit/shots/moments-B.png (before: KO frames and result) vs moments-C.png
+17	goose Hup-Welle shows "HUP!" instead of the duck's "QUAK!" ('honk' prop, same shockwave builder)	.audit/shots/specials-C.png and moments-B.png show QUAK on geese; moments-C.png shows HUP!
+18	not fixed: invulnerable hits (dive, respawn) give no feedback; dive has no submerge visual; boss enrage has no model change; no rage timer on HUD	callout + flicker + banner already cover these; each extra cue would add more than it earns

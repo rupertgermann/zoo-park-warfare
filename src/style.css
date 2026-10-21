@@ -116,7 +116,7 @@ kbd {
 .hp span { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 900; font-size: 12px; }
 @keyframes pulse { 50% { filter: brightness(1.35); } }
 .abilities { position: absolute; right: 18px; bottom: 18px; display: flex; gap: 10px; }
-.ab { position: relative; width: 168px; padding-right: 36px; background: var(--cream); border: 3px solid var(--ink); border-radius: 14px; padding: 7px 10px; box-shadow: var(--pop); overflow: hidden; }
+.ab { position: relative; width: 180px; background: var(--cream); border: 3px solid var(--ink); border-radius: 14px; padding: 7px 36px 7px 10px; box-shadow: var(--pop); overflow: hidden; }
 .ab b { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; opacity: .6; }
 .ab span { font-weight: 900; font-size: 15px; }
 .ab .cd { position: absolute; inset: 0; background: rgba(27,21,48,.55); transform-origin: bottom; transform: scaleY(var(--k, 0)); }
@@ -127,7 +127,7 @@ kbd {
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .banner { position: absolute; left: 0; right: 0; top: 26%; text-align: center; opacity: 0; transform: scale(.7); transition: opacity .2s, transform .35s cubic-bezier(.3,1.6,.5,1); }
 .banner.show { opacity: 1; transform: scale(1); }
-.banner h2 { margin: 0; font-size: clamp(48px, 9vw, 120px); font-weight: 900; color: var(--sun); -webkit-text-stroke: 4px var(--ink); paint-order: stroke fill; text-shadow: 0 8px 0 var(--ink); }
+.banner h2 { margin: 0; font-size: clamp(36px, min(9vw, 120vw / var(--len, 1)), 120px); font-weight: 900; color: var(--sun); -webkit-text-stroke: 4px var(--ink); paint-order: stroke fill; text-shadow: 0 8px 0 var(--ink); }
 .banner p { margin: 6px 0 0; font-size: 22px; font-weight: 800; color: #fff; text-shadow: 0 2px 0 var(--ink), 0 0 14px rgba(0,0,0,.4); }
 .banner.boss { top: 62%; }
 .banner.boss h2 { color: #4fd1ff; letter-spacing: 4px; }
@@ -143,6 +143,8 @@ kbd {
 .plate i { display: block; width: 46px; height: 6px; margin: 2px auto 0; background: rgba(27,21,48,.6); border: 1.5px solid var(--ink); border-radius: 9px; overflow: hidden; }
 .plate b { display: block; height: 100%; background: var(--t); }
 .plate.stun span::after { content: ' 💫'; }
+.plate em { display: none; font-style: normal; font-size: 13px; font-weight: 900; color: var(--sun); -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; white-space: nowrap; }
+.plate.cast em { display: block; }
 .num { position: absolute; left: 0; top: 0; font-weight: 900; font-size: 20px; color: #fff; -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; opacity: 0; will-change: transform; }
 .num.big { color: var(--pink); font-size: 28px; }
 .num.boss { color: #4fd1ff; }
@@ -193,7 +195,7 @@ kbd {
 .crownchip { font-size: 12px; font-weight: 800; background: var(--sun); border: 2px solid var(--ink); border-radius: 99px; padding: 1px 8px; margin: 0 0 4px; display: inline-block; }
 .bossbar.stunned .bar { animation: pulse .35s infinite; box-shadow: 0 0 0 4px var(--sun), 0 3px 0 var(--ink); }
 .bossbar.stunned .bossname::after { content: ' · BENOMMEN!'; color: var(--sun); }
-.hud.cinematic .me, .hud.cinematic .abilities, .hud.cinematic .feed, .hud.cinematic .plates, .hud.cinematic .crosshair { opacity: 0; transition: opacity .3s; }
+.hud.cinematic .me, .hud.cinematic .abilities, .hud.cinematic .bossbar, .hud.cinematic .feed, .hud.cinematic .plates, .hud.cinematic .crosshair { opacity: 0; transition: opacity .3s; }
 .banner.lose h2 { color: var(--pink); }
 .caption { font-size: 12px; font-weight: 800; text-transform: none; opacity: .65; margin: 0 0 6px !important; }
 .overlay button:disabled { opacity: .6; cursor: default; }

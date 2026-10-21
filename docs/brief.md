@@ -26,8 +26,8 @@ export function buildCreature(id /* species id or 'eisvogel' */) -> Creature
 // Anim = { move: 0..1, air: bool, swim: bool, attack: 0..1 (1 at trigger, game decays it),
 //          hurt: 0..1 (1 when hit), stun: bool, special: 0..1, dead: bool, t: seconds }
 export function buildProp(name) -> THREE.Object3D
-// Projectile/summon meshes, ~0.3-0.6 m: 'fish','carrot','poop','nut','bignut','cap','quack','bread','chick','pigeon','bossfish','crown'
-// 'quack' is a cartoon speech-bubble ring "QUAK"-like shockwave; 'chick' is a duckling; 'pigeon' a mini pigeon.
+// Projectile/summon meshes, ~0.3-0.6 m: 'fish','carrot','poop','nut','bignut','cap','quack','honk','bread','chick','pigeon','bossfish','crown'
+// 'quack'/'honk' are cartoon shockwave rings reading "QUAK!"/"HUP!"; 'chick' is a duckling; 'pigeon' a mini pigeon.
 ```
 Game-scale heights: taube 0.7, kraehe 0.8, elster 0.8, kaninchen 0.8, ente 0.85, nutria 0.75, kormoran 1.1, gans 1.2, schwan 1.5, mensch 1.85, eisvogel ~3.5 tall with ~7 m wingspan.
 

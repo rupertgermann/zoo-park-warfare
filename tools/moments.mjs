@@ -67,8 +67,8 @@ await page.evaluate(() => { __pw.startMatch(); __pw.game.autopilot = true; });
 await page.waitForFunction(() => __pw.game.phase === 'match');
 await page.evaluate(() => __pw.game.skipToBoss());
 await page.waitForFunction(() => __pw.game.phase === 'boss', null, { timeout: 10000 });
-await page.evaluate(() => { __pw.game.lives = 1; const p = __pw.game.player; p.invulnT = 0; p.hp = 1; });
-await page.waitForFunction(() => __pw.game.phase === 'over', null, { timeout: 60000 }).catch(() => console.log('player survived'));
+await page.evaluate(() => { __pw.game.lives = 1; });
+await page.waitForFunction(() => { const g = __pw.game, p = g.player; if (p.alive) { p.hp = Math.min(p.hp, 1); p.invulnT = 0; } return g.phase === 'over'; }, null, { timeout: 60000, polling: 'raf' }).catch(() => console.log('player survived'));
 for (const [ms, n] of [[300, 'a-lose-a'], [1200, 'a-lose-b'], [1500, 'a-lose-result']]) { await page.waitForTimeout(ms); await shot(n); }
 console.log(errors.length ? 'CONSOLE: ' + [...new Set(errors)].join('\n') : 'no console errors');
 await browser.close();

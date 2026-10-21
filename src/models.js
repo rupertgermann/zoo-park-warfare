@@ -855,12 +855,8 @@ const PROPS = {
     part(o, 'cyl', mat(0xd8dde4, { metal: 0.8, rough: 0.25 }), [0, 0, 0], [0.15, 0.045, 0.15]);
     part(o, 'cyl', 0xe23b3b, [0, 0.024, 0], [0.12, 0.01, 0.12]);
   },
-  quack(o) {
-    const ring = mat(0xffe14a, { glow: 0.6 });
-    part(o, 'torus', ring, [0, 0, 0], [0.3, 0.3, 0.4]);
-    part(o, 'torus', ring, [0, 0, -0.12], [0.2, 0.2, 0.3]);
-    o.add(quackSprite());
-  },
+  quack(o) { shout(o, 'QUAK!'); },
+  honk(o) { shout(o, 'HUP!'); },
   bread(o) {
     const geo = cachedGeo('toast', () => {
       const s = new THREE.Shape();
@@ -916,20 +912,27 @@ const PROPS = {
   },
 };
 
-let quackTex;
-function quackSprite() {
-  if (!quackTex) {
+// cartoon shockwave: two rings plus the sound word as a sprite
+function shout(o, word) {
+  const ring = mat(0xffe14a, { glow: 0.6 });
+  part(o, 'torus', ring, [0, 0, 0], [0.3, 0.3, 0.4]);
+  part(o, 'torus', ring, [0, 0, -0.12], [0.2, 0.2, 0.3]);
+  o.add(wordSprite(word));
+}
+const wordTex = {};
+function wordSprite(word) {
+  if (!wordTex[word]) {
     const cv = document.createElement('canvas');
     cv.width = 256; cv.height = 128;
     const c = cv.getContext('2d');
     c.font = '900 84px "Arial Black", Impact, sans-serif';
     c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.lineWidth = 14; c.strokeStyle = '#3a2a00'; c.strokeText('QUAK!', 128, 66);
-    c.fillStyle = '#ffe14a'; c.fillText('QUAK!', 128, 66);
-    quackTex = new THREE.CanvasTexture(cv);
-    quackTex.colorSpace = THREE.SRGBColorSpace;
+    c.lineWidth = 14; c.strokeStyle = '#3a2a00'; c.strokeText(word, 128, 66);
+    c.fillStyle = '#ffe14a'; c.fillText(word, 128, 66);
+    wordTex[word] = new THREE.CanvasTexture(cv);
+    wordTex[word].colorSpace = THREE.SRGBColorSpace;
   }
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: quackTex, depthWrite: false, depthTest: false }));
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: wordTex[word], depthWrite: false, depthTest: false }));
   sp.scale.set(0.56, 0.28, 1);
   sp.renderOrder = 10;
   return sp;

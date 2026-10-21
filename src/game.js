@@ -298,6 +298,7 @@ export function createGame({ scene, park, fx, ui }) {
     }
     a.cdS = s.cd;
     a.anim.special = 1;
+    if (!a.isPlayer) ui.cast(a);
     a.faceT = 0.5;
     a.aimYaw = Math.atan2(f.x, f.z);
     const at = { x: a.pos.x, z: a.pos.z };

@@ -47,7 +47,7 @@ const creatures = ids.map((id, i) => {
   c.root.traverse(o => { if (o.isMesh) meshes++; });
   return { id, c, meshes };
 });
-const propNames = ['fish', 'carrot', 'poop', 'nut', 'bignut', 'cap', 'quack', 'bread', 'chick', 'pigeon', 'bossfish', 'cherry'];
+const propNames = ['fish', 'carrot', 'poop', 'nut', 'bignut', 'cap', 'quack', 'honk', 'bread', 'chick', 'pigeon', 'bossfish', 'cherry'];
 const props = q.get('props') === '0' ? [] : propNames.map((n, i) => {
   const p = buildProp(n);
   p.position.set((i - (propNames.length - 1) / 2) * 1.3, 0.45, 3);

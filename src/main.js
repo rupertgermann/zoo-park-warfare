@@ -16,7 +16,8 @@ renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(65, 1, 0.1, 400);
+const FOV = 65;
+const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 400);
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const park = buildPark(scene);
@@ -277,12 +278,21 @@ function updateCamera(dt) {
     const shot = finale ? tmp.set(b.x + (p.pos.x - b.x) * 0.5, 4, b.z + (p.pos.z - b.z) * 0.5 + 9) : tmp.set(0, 5, 18);
     camera.position.lerp(shot, Math.min(1, dt * (finale ? 1.5 : 2.5)));
     camera.lookAt(b.x, b.y + 2, b.z);
+    // telephoto on the intro so the far-off kingfisher fills the frame instead of being a dot
+    camera.fov = finale ? FOV : THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(2 * Math.atan(9 / camera.position.distanceTo(b))), 22, FOV);
+    camera.updateProjectionMatrix();
     cam.pos.copy(camera.position);
+    // the fight starts facing the boss
+    cam.yaw = Math.atan2(b.x - p.pos.x, b.z - p.pos.z);
+    cam.pitch = 0.2;
     return;
   }
+  resetFov();
   if (game.autopilot) cam.yaw += Math.atan2(Math.sin(p.yaw - cam.yaw), Math.cos(p.yaw - cam.yaw)) * Math.min(1, dt * 3);
   camTarget(camGoal);
   occlude(camGoal);
+  // cut instead of swooping across the park after a respawn or the boss intro
+  if (cam.pos.distanceTo(camGoal) > 8) cam.pos.copy(camGoal);
   cam.pos.lerp(camGoal, Math.min(1, dt * 18));
   camera.position.copy(cam.pos);
   const lookY = Math.max(p.pos.y, 0) + p.model.height * 0.9 + 0.5;
@@ -294,7 +304,10 @@ function updateCamera(dt) {
   }
 }
 
+function resetFov() { if (camera.fov !== FOV) { camera.fov = FOV; camera.updateProjectionMatrix(); } }
+
 function updateMenuCamera(dt, t) {
+  resetFov();
   if (!reduceMotion) showcase.root.rotation.y += showcase.spin * dt;
   showcase.t += dt;
   showcase.pop = Math.max(0, (showcase.pop || 0) - dt * 3);

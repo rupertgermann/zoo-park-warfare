@@ -165,9 +165,9 @@ export function createUI(root) {
     el('abS').querySelector('span').textContent = s.special.name;
     for (const a of game.actors) {
       if (a.isPlayer) continue;
-      const root = $(`<div class="plate ${a.team === 0 ? 'ally' : ''}" style="--t:${hex(TEAM_COLORS[a.team])}"><span>${esc(a.name)}</span><i><b></b></i></div>`);
+      const root = $(`<div class="plate ${a.team === 0 ? 'ally' : ''}" style="--t:${hex(TEAM_COLORS[a.team])}"><em>${esc(a.spec.special.name)}!</em><span>${esc(a.name)}</span><i><b></b></i></div>`);
       el('plates').append(root);
-      plates.set(a, { root, bar: root.querySelector('b') });
+      plates.set(a, { root, bar: root.querySelector('b'), castT: 0 });
     }
     scores();
   }
@@ -187,6 +187,7 @@ export function createUI(root) {
     b.className = 'banner show ' + cls;
     b.querySelector('h2').textContent = title;
     b.querySelector('p').textContent = sub;
+    b.style.setProperty('--len', title.length);
     bannerT = dur;
   }
   function toast(msg) {
@@ -209,6 +210,9 @@ export function createUI(root) {
     }
     hud.classList.toggle('cinematic', p === 'bossIntro' || p === 'over');
   }
+
+  // a rival's special: name it above its head so you know what just hit you
+  function cast(a) { const pe = plates.get(a); if (pe) pe.castT = 1.3; }
 
   function bossStunned(on) { el('bossbar').classList.toggle('stunned', on); }
 
@@ -325,7 +329,9 @@ export function createUI(root) {
     } else el('hurtdir').style.opacity = 0;
 
     const W = innerWidth, H = innerHeight;
-    for (const [a, { root: pl, bar }] of plates) {
+    for (const [a, pe] of plates) {
+      const { root: pl, bar } = pe;
+      pe.castT -= dt;
       const d = a.pos.distanceTo(p.pos);
       const far = game.phase === 'boss' ? d > 15 && a.hp > a.maxHp * 0.5 : d > (a.team === p.team ? 42 : 26);
       if (!a.alive || far) { pl.style.display = 'none'; continue; }
@@ -335,6 +341,7 @@ export function createUI(root) {
       pl.style.transform = `translate3d(${(v.x * 0.5 + 0.5) * W}px,${(-v.y * 0.5 + 0.5) * H}px,0) translate(-50%,-100%)`;
       bar.style.width = (a.hp / a.maxHp * 100) + '%';
       pl.classList.toggle('stun', a.stunT > 0);
+      pl.classList.toggle('cast', pe.castT > 0);
     }
     for (const n of nums) {
       if (n.life <= 0) continue;
@@ -375,7 +382,7 @@ export function createUI(root) {
   }
 
   return {
-    el, portraits, bind, bossStunned, buildGrid, showMenu, setSelected, matchStart, scores, phase, lives, killfeed, hitmarker, hurt, died, respawned,
+    el, portraits, bind, bossStunned, cast, buildGrid, showMenu, setSelected, matchStart, scores, phase, lives, killfeed, hitmarker, hurt, died, respawned,
     toast, banner, showResult, showPause, update, setMuted,
     hideHud() { hud.hidden = true; },
   };
