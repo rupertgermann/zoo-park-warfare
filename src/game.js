@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SPECIES, BOSS, byId, TEAM_COLORS, RULES } from './species.js';
+import { SPECIES, BOSS, byId, TEAM_COLORS, RULES, DIFFICULTY } from './species.js';
 import { buildCreature, buildProp } from './models.js';
 import { audio } from './audio.js';
 
@@ -20,7 +20,7 @@ export function createGame({ scene, park, fx, ui }) {
   const g = {
     phase: 'idle', phaseT: 0, actors: [], player: null, boss: null,
     projectiles: [], summons: [], pickups: [], scores: [], teams: [],
-    lives: RULES.bossLives, shake: 0, result: null, time: 0, hitstop: 0, slow: 0.15,
+    lives: 0, shake: 0, result: null, time: 0, hitstop: 0, slow: 0.15,
   };
   const pool = {};
   let lastCount = 0; // last countdown number shown
@@ -79,7 +79,7 @@ export function createGame({ scene, park, fx, ui }) {
         if (isPlayer) g.player = a;
       }
     });
-    g.lives = RULES.bossLives;
+    g.lives = g.diff.lives;
     for (const s of park.pickupSpots) {
       const mesh = new THREE.Group();
       const snack = buildProp('bread');
@@ -124,6 +124,8 @@ export function createGame({ scene, park, fx, ui }) {
 
   const hostile = (a, b) => a !== b && (g.phase === 'boss' ? a.isBoss !== b.isBoss : a.team !== b.team);
   const center = (a, out = v1) => out.set(a.pos.x, a.pos.y + a.model.height * 0.5, a.pos.z);
+  // bots fighting against the player; allies and the player keep full stats
+  const rival = a => !a.isPlayer && a.team !== g.player.team;
   const near = (a, d = 18) => a.isPlayer || a.pos.distanceTo(g.player.pos) < d;
   const fighting = () => g.phase === 'match' || g.phase === 'boss';
 
@@ -144,6 +146,7 @@ export function createGame({ scene, park, fx, ui }) {
     if (t.isBoss && !src.isPlayer) amount *= 0.15;
     if (t.isBoss && src.team === g.crown) amount *= CROWN_BONUS;
     if (t.isBoss && g.bossAi.mode === 'stunned') amount *= 1.5;
+    if (t.isPlayer) amount *= g.diff.dmg;
     amount = Math.round(amount);
     t.hp -= amount;
     t.anim.hurt = 1;
@@ -248,7 +251,7 @@ export function createGame({ scene, park, fx, ui }) {
     const p = a.spec.primary;
     const dmg = p.dmg * (a.rageT > 0 ? a.spec.special.mult : 1);
     if (a.cdP > 0 || a.diveT > 0) return;
-    a.cdP = p.rate;
+    a.cdP = p.rate * (rival(a) ? g.diff.rate : 1);
     a.anim.attack = 1;
     a.faceT = 0.45;
     a.aimYaw = Math.atan2(aim.x - a.pos.x, aim.z - a.pos.z);
@@ -392,7 +395,7 @@ export function createGame({ scene, park, fx, ui }) {
       audio.sfx('splash', { x: a.pos.x, z: a.pos.z, vol: a.isPlayer ? 0.7 : 0.25 });
     }
     a.inWater = water && a.pos.y < 0.3;
-    let speed = s.speed * (a.inWater ? (s.swims ? (s.swimMult || 1.2) : 0.55) : 1);
+    let speed = s.speed * (rival(a) ? g.diff.speed : 1) * (a.inWater ? (s.swims ? (s.swimMult || 1.2) : 0.55) : 1);
     if (a.diveT > 0 || a.rageT > 0) speed *= s.special.boost;
     const wish = canAct ? c.wish : v1.set(0, 0, 0);
     const accel = a.knockT > 0 ? 2 : a.onGround || a.inWater ? 14 : 5;
@@ -627,7 +630,7 @@ export function createGame({ scene, park, fx, ui }) {
       if (c.wish.lengthSq() > 1) c.wish.normalize();
       // aim with lead + error that shrinks when close
       const lead = Math.min(0.6, d / (p.speed || 30));
-      const err = 0.4 + d * 0.06;
+      const err = (0.4 + d * 0.06) * (rival(a) ? g.diff.aim : 1);
       center(t, c.aim);
       c.aim.x += t.vel.x * lead + rand(-err, err);
       c.aim.y += rand(-err, err) * 0.5;
@@ -735,7 +738,7 @@ export function createGame({ scene, park, fx, ui }) {
       v1.set(x - b.pos.x, y - b.pos.y, z - b.pos.z);
       const d = v1.length();
       if (d > 0.01) {
-        b.pos.addScaledVector(v1.normalize(), Math.min(d, sp * dt));
+        b.pos.addScaledVector(v1.normalize(), Math.min(d, sp * g.diff.boss * dt));
         if (Math.hypot(v1.x, v1.z) > 0.1) b.yaw += angleDiff(Math.atan2(v1.x, v1.z), b.yaw) * Math.min(1, dt * 6);
       }
       return d;
@@ -879,5 +882,5 @@ export function createGame({ scene, park, fx, ui }) {
     winPhase1(0, 0.1);
   }
 
-  return Object.assign(g, { start, update, clear, hostile, center, skipToBoss, autopilot: false });
+  return Object.assign(g, { start, update, clear, hostile, center, skipToBoss, autopilot: false, diff: DIFFICULTY[2] });
 }

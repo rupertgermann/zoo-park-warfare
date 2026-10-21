@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SPECIES, byId } from './species.js';
+import { SPECIES, byId, DIFFICULTY } from './species.js';
 import { buildCreature } from './models.js';
 import { buildPark } from './park.js';
 import { audio } from './audio.js';
@@ -154,7 +154,7 @@ addEventListener('keydown', e => {
     const i = SPECIES.findIndex(s => s.id === app.selected);
     const cols = 2;
     const move = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -cols, ArrowDown: cols }[e.code];
-    if (move !== undefined) {
+    if (move !== undefined && !(e.target instanceof HTMLInputElement)) {
       e.preventDefault();
       const n = (i + move + SPECIES.length) % SPECIES.length;
       select(SPECIES[n].id);
@@ -179,6 +179,11 @@ canvas.addEventListener('pointermove', e => {
   showcase.spin = 0;
 });
 canvas.addEventListener('pointerup', () => { showcase.drag = null; setTimeout(() => { if (showcase.drag === null) showcase.spin = 0.4; }, 2500); });
+
+const diffEl = ui.el('diff');
+const setDiff = id => { game.diff = DIFFICULTY.find(d => d.id === id) || DIFFICULTY[1]; diffEl.querySelector(`[value="${game.diff.id}"]`).checked = true; };
+setDiff(localStorage.getItem('pw.diff'));
+diffEl.onchange = e => { setDiff(e.target.value); localStorage.setItem('pw.diff', e.target.value); audio.sfx('uiMove'); };
 
 const volEl = ui.el('vol'), sensEl = ui.el('sens');
 volEl.value = audio.getVolume();

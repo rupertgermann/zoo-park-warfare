@@ -56,6 +56,8 @@ if (codeFile) {
     });
   }
 }
+// --diff leicht|mittel|schwer (default schwer, the tuned baseline)
+await page.addInitScript(d => localStorage.setItem('pw.diff', d), opt('--diff', 'schwer'));
 await page.goto(url);
 await page.waitForFunction(() => window.__pw);
 await applyPatch();

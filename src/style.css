@@ -199,3 +199,11 @@ kbd {
 .banner.lose h2 { color: var(--pink); }
 .caption { font-size: 12px; font-weight: 800; text-transform: none; opacity: .65; margin: 0 0 6px !important; }
 .overlay button:disabled { opacity: .6; cursor: default; }
+.diff { pointer-events: auto; border: 0; margin: 0 0 0 auto; padding: 0; display: flex; align-items: center; gap: 4px; background: rgba(27,21,48,.62); border-radius: 99px; padding: 4px; }
+.diff legend { float: left; color: #fff; font-weight: 800; font-size: 12px; padding: 0 8px 0 10px; }
+.diff label { cursor: pointer; }
+.diff input { position: absolute; opacity: 0; pointer-events: none; }
+.diff span { display: block; padding: 6px 12px; border-radius: 99px; font-weight: 900; font-size: 13px; color: #fff; }
+.diff label:hover span { background: rgba(255,255,255,.15); }
+.diff input:checked + span { background: var(--sun); color: var(--ink); box-shadow: 0 0 0 2px var(--ink); }
+.diff input:focus-visible + span { outline: 3px solid #fff; outline-offset: 2px; }
