@@ -194,16 +194,17 @@ kbd {
 @media (max-width: 960px) { .feed { top: 96px; } }
 .crownchip { font-size: 12px; font-weight: 800; background: var(--sun); border: 2px solid var(--ink); border-radius: 99px; padding: 1px 8px; margin: 0 0 4px; display: inline-block; }
 .bossbar.stunned .bar { animation: pulse .35s infinite; box-shadow: 0 0 0 4px var(--sun), 0 3px 0 var(--ink); }
-.bossbar.stunned .bossname::after { content: ' · BENOMMEN!'; color: var(--sun); }
+.bossbar.stunned .bossname::after { content: ' · ' attr(data-stunned); color: var(--sun); }
 .hud.cinematic .me, .hud.cinematic .abilities, .hud.cinematic .bossbar, .hud.cinematic .feed, .hud.cinematic .plates, .hud.cinematic .crosshair { opacity: 0; transition: opacity .3s; }
 .banner.lose h2 { color: var(--pink); }
 .caption { font-size: 12px; font-weight: 800; text-transform: none; opacity: .65; margin: 0 0 6px !important; }
 .overlay button:disabled { opacity: .6; cursor: default; }
-.diff { pointer-events: auto; border: 0; margin: 0 0 0 auto; padding: 0; display: flex; align-items: center; gap: 4px; background: rgba(27,21,48,.62); border-radius: 99px; padding: 4px; }
-.diff legend { float: left; color: #fff; font-weight: 800; font-size: 12px; padding: 0 8px 0 10px; }
-.diff label { cursor: pointer; }
-.diff input { position: absolute; opacity: 0; pointer-events: none; }
-.diff span { display: block; padding: 6px 12px; border-radius: 99px; font-weight: 900; font-size: 13px; color: #fff; }
-.diff label:hover span { background: rgba(255,255,255,.15); }
-.diff input:checked + span { background: var(--sun); color: var(--ink); box-shadow: 0 0 0 2px var(--ink); }
-.diff input:focus-visible + span { outline: 3px solid #fff; outline-offset: 2px; }
+.seg { pointer-events: auto; border: 0; margin: 0 0 0 auto; padding: 0; display: flex; align-items: center; gap: 4px; background: rgba(27,21,48,.62); border-radius: 99px; padding: 4px; }
+.seg legend { float: left; color: #fff; font-weight: 800; font-size: 12px; padding: 0 8px 0 10px; }
+.seg label { cursor: pointer; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span { display: block; padding: 6px 12px; border-radius: 99px; font-weight: 900; font-size: 13px; color: #fff; }
+.seg label:hover span { background: rgba(255,255,255,.15); }
+.seg input:checked + span { background: var(--sun); color: var(--ink); box-shadow: 0 0 0 2px var(--ink); }
+.seg input:focus-visible + span { outline: 3px solid #fff; outline-offset: 2px; }
+.seg.lang { display: inline-flex; margin: 12px 0 0; }

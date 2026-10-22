@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { SPECIES, BOSS, byId, TEAM_COLORS, RULES, DIFFICULTY } from './species.js';
+import { L, text } from './i18n.js';
 import { buildCreature, buildProp } from './models.js';
 import { audio } from './audio.js';
 
@@ -71,7 +72,7 @@ export function createGame({ scene, park, fx, ui }) {
     g.scores = g.teams.map(() => 0);
     g.spawns = shuffle(park.teamSpawns.slice()).slice(0, RULES.teams);
     g.teams.forEach((spec, team) => {
-      const names = shuffle(spec.names.slice());
+      const names = shuffle(text(spec).names.slice());
       for (let i = 0; i < RULES.perTeam; i++) {
         const isPlayer = team === 0 && i === 0;
         const a = makeActor(spec, team, isPlayer ? 'Du' : names[i % names.length], isPlayer);
@@ -194,7 +195,7 @@ export function createGame({ scene, park, fx, ui }) {
       if (g.phase === 'boss') {
         g.lives--;
         ui.lives(g.lives);
-        if (g.lives <= 0) return finish(false, 'Der Eisvogel war zu schnell für dich.');
+        if (g.lives <= 0) return finish(false, L.tooFast);
       }
       ui.died(src, t.respawnT);
     }
@@ -297,7 +298,7 @@ export function createGame({ scene, park, fx, ui }) {
     if (a.cdS > 0 || a.stunT > 0) return;
     const f = v2.set(aim.x - a.pos.x, 0, aim.z - a.pos.z).normalize();
     if (s.kind === 'lifesteal' || s.kind === 'summon') {
-      if (!nearestHostile(a, s.range ?? 40)) { if (a.isPlayer) ui.toast('Kein Ziel in Reichweite'); return; }
+      if (!nearestHostile(a, s.range ?? 40)) { if (a.isPlayer) ui.toast(L.noTarget); return; }
     }
     a.cdS = s.cd;
     a.anim.special = 1;
@@ -578,7 +579,7 @@ export function createGame({ scene, park, fx, ui }) {
         p.mesh.visible = false;
         fx.burst(p.mesh.position, [0x9dff6a, 0xffe08a], 12, { speed: 3, up: 4, life: 0.6 });
         audio.sfx('pickup', { x: p.x, z: p.z, vol: a.isPlayer ? 1 : 0.3 });
-        if (a.isPlayer) ui.toast('+45 Leben. Lecker Brot!');
+        if (a.isPlayer) ui.toast(L.bread);
         break;
       }
     }
@@ -696,7 +697,7 @@ export function createGame({ scene, park, fx, ui }) {
 
   // ---------- boss ----------
   function spawnBoss() {
-    const b = makeActor(BOSS, 9, BOSS.name);
+    const b = makeActor(BOSS, 9, text(BOSS).name);
     b.maxHp = b.hp = BOSS.hp;
     b.pos.set(0, 30, -90);
     b.model.root.scale.setScalar(BOSS_SCALE);
@@ -729,7 +730,7 @@ export function createGame({ scene, park, fx, ui }) {
     const R = 16, H = 11;
     if (enraged && !ai.enraged) {
       ai.enraged = true;
-      ui.banner('DER EISVOGEL RASTET AUS!', 'Doppelte Sturzflüge. Jetzt wird es ernst.', 2.4, 'boss');
+      ui.banner(L.enrage, L.enrageSub, 2.4, 'boss');
       audio.sfx('screech', { x: b.pos.x, z: b.pos.z });
     }
     ui.bossStunned(ai.mode === 'stunned' && ai.divesLeft <= 0);
@@ -779,7 +780,7 @@ export function createGame({ scene, park, fx, ui }) {
           explodeBoss(b.pos);
           ai.mode = 'stunned';
           ai.t = ai.divesLeft > 0 ? 0.7 : 2.6;
-          if (ai.divesLeft <= 0) ui.toast('Der Eisvogel ist benommen! Jetzt draufhauen!');
+          if (ai.divesLeft <= 0) ui.toast(L.bossDazed);
         }
         break;
       }
@@ -821,7 +822,7 @@ export function createGame({ scene, park, fx, ui }) {
     ai.point.set(ai.target.pos.x, 0, ai.target.pos.z);
     ai.mark = fx.ring(ai.point, 4.5, 0xff2a2a, 10, { grow: false, follow: ai.point });
     audio.sfx('screech', { x: g.boss.pos.x, z: g.boss.pos.z, vol: 0.9 });
-    if (ai.target.isPlayer) ui.toast('Der Eisvogel hat dich im Visier! Ausweichen!');
+    if (ai.target.isPlayer) ui.toast(L.bossTargets);
   }
 
   function explodeBoss(pos) {
@@ -845,7 +846,7 @@ export function createGame({ scene, park, fx, ui }) {
     if (g.phaseT > 0) g.phaseT -= dt;
     if (g.phase === 'countdown') {
       const n = Math.ceil(g.phaseT);
-      if (n > 0 && n !== lastCount) { lastCount = n; ui.banner(String(n), 'Mach dich bereit!', 1.2, 'count'); audio.sfx('countdown'); }
+      if (n > 0 && n !== lastCount) { lastCount = n; ui.banner(String(n), L.ready, 1.2, 'count'); audio.sfx('countdown'); }
     }
     if (g.phase === 'countdown' && g.phaseT <= 0) { setPhase('match'); audio.sfx('go'); audio.music('match'); }
     if (g.phase === 'won') for (const a of g.actors) if (!a.alive) respawn(a); // nobody can die during 'won', so this runs once in effect
