@@ -170,7 +170,11 @@ export function createUI(root) {
   function setLanguage() { relabel(); buildGrid(); if (selected) setSelected(selected); }
 
   // ---------- match ----------
-  function bind(g) { game = g; }
+  function bind(g) {
+    game = g;
+    g.on('phase', chat.phase);
+    g.on('ko', ({ src, t }) => chat.ko(src, t));
+  }
   function matchStart() {
     el('menu').hidden = el('result').hidden = el('pause').hidden = true;
     hud.hidden = false;
@@ -329,6 +333,7 @@ export function createUI(root) {
     if (toastT > 0 && (toastT -= dt) <= 0) el('toast').classList.remove('show');
     const p = game.player;
     if (!p || hud.hidden) return;
+    chat.update(dt);
     el('cross').hidden = game.phase === 'bossIntro' || game.phase === 'over' || !p.alive;
     el('mehp').style.width = (p.hp / p.maxHp * 100) + '%';
     el('mehp').classList.toggle('low', p.hp < p.maxHp * 0.3);
@@ -406,7 +411,7 @@ export function createUI(root) {
   relabel();
   return {
     el, portraits, bind, bossStunned, cast, buildGrid, setLanguage, showMenu, setSelected, matchStart, scores, phase, lives, killfeed, hitmarker, hurt, died, respawned,
-    toast, banner, showResult, showPause, update, setMuted, chat,
+    toast, banner, showResult, showPause, update, setMuted,
     hideHud() { hud.hidden = true; },
   };
 }

@@ -18,7 +18,11 @@ const angleDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 const ringGeo = new THREE.RingGeometry(0.75, 1, 32).rotateX(-Math.PI / 2);
 
 export function createGame({ scene, park, fx, ui }) {
+  // what happened in the match; ui, chat and sounds listen, the rules don't know who
+  const listeners = {};
+  const emit = (type, e) => listeners[type]?.forEach(fn => fn(e));
   const g = {
+    on: (type, fn) => (listeners[type] ||= []).push(fn),
     phase: 'idle', phaseT: 0, actors: [], player: null, boss: null,
     projectiles: [], summons: [], pickups: [], scores: [], teams: [],
     lives: 0, shake: 0, result: null, time: 0, hitstop: 0, slow: 0.15,
@@ -121,7 +125,7 @@ export function createGame({ scene, park, fx, ui }) {
     g.phase = p;
     g.phaseT = t;
     ui.phase(p);
-    ui.chat.phase(p);
+    emit('phase', p);
   }
 
   const hostile = (a, b) => a !== b && (g.phase === 'boss' ? a.isBoss !== b.isBoss : a.team !== b.team);
@@ -192,7 +196,7 @@ export function createGame({ scene, park, fx, ui }) {
         audio.sfx(src.team === g.player.team ? 'win' : 'lose');
       }
     }
-    ui.chat.ko(src, t);
+    emit('ko', { src, t });
     if (t.isPlayer) {
       if (g.phase === 'boss') {
         g.lives--;
@@ -876,7 +880,6 @@ export function createGame({ scene, park, fx, ui }) {
       a.ring.position.set(a.pos.x, (a.inWater ? park.waterLevel : 0) + 0.04, a.pos.z);
     }
     if (g.boss) { g.boss.model.root.position.copy(g.boss.pos); g.boss.model.root.rotation.y = g.boss.yaw; }
-    ui.chat.update(dt);
   }
 
   // test hooks: jump straight to the boss, or let the AI drive the player
