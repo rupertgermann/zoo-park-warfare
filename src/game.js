@@ -34,6 +34,7 @@ export function createGame({ scene, park, fx, ui }) {
     for (const s of g.summons) release(s.mesh, s.model);
     for (const p of g.pickups) scene.remove(p.mesh);
     Object.assign(g, { actors: [], projectiles: [], summons: [], pickups: [], player: null, boss: null, result: null });
+    for (const k in pool) delete pool[k]; // pooled props may carry the previous language's sound word
     fx.clear();
   }
 

@@ -3,7 +3,7 @@
 // normalized to its game-scale height, and animated by one shared animator that reads only the rig.
 import * as THREE from 'three';
 import { toon } from './toon.js';
-import { L } from './i18n.js';
+import { L, lang } from './i18n.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const PI = Math.PI;
@@ -941,7 +941,9 @@ function wordSprite(word) {
     const cv = document.createElement('canvas');
     cv.width = 256; cv.height = 128;
     const c = cv.getContext('2d');
-    c.font = '900 84px "Arial Black", Impact, sans-serif';
+    const font = px => `900 ${px}px "Arial Black", Impact, sans-serif`;
+    c.font = font(84);
+    c.font = font(Math.min(84, 84 * 228 / c.measureText(word).width)); // HONK! and QUACK! are wider than HUP!
     c.textAlign = 'center'; c.textBaseline = 'middle';
     c.lineWidth = 14; c.strokeStyle = '#3a2a00'; c.strokeText(word, 128, 66);
     c.fillStyle = '#ffe14a'; c.fillText(word, 128, 66);
@@ -956,13 +958,15 @@ function wordSprite(word) {
 
 const propTemplates = new Map();
 // Props face +Z (direction of travel); geometry and materials are shared between clones.
+// Keyed by language too, because honk and quack bake their sound word into a sprite.
 export function buildProp(name) {
-  let tpl = propTemplates.get(name);
+  const key = `${name}:${lang}`;
+  let tpl = propTemplates.get(key);
   if (!tpl) {
     tpl = new THREE.Group();
     PROPS[name](tpl);
-    bake(tpl, new Set([tpl]), `prop:${name}`);
-    propTemplates.set(name, tpl);
+    bake(tpl, new Set([tpl]), `prop:${key}`);
+    propTemplates.set(key, tpl);
   }
   return tpl.clone();
 }
