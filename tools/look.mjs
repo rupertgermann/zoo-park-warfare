@@ -1,5 +1,5 @@
 // Visual check for render changes: menu, match, pond and boss shots plus fps and draw calls.
-// node tools/look.mjs [tag] [--w 1440 --h 900]  -> .audit/shots/look/<tag>-*.png
+// node tools/look.mjs [tag] [--w 1440 --h 900 --dpr 1 --lang de|en]  -> .audit/shots/look/<tag>-*.png
 import { chromium } from 'playwright-core';
 import { mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -8,6 +8,7 @@ const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
 const tag = args[0] && !args[0].startsWith('--') ? args[0] : 'now';
 const W = Number(opt('--w', 1440)), H = Number(opt('--h', 900)), DPR = Number(opt('--dpr', 1));
+const LANG = opt('--lang', null);
 const out = '.audit/shots/look';
 mkdirSync(out, { recursive: true });
 
@@ -25,6 +26,7 @@ const perf = () => page.evaluate(() => new Promise(r => {
   requestAnimationFrame(f);
 }));
 
+if (LANG) await page.addInitScript(l => localStorage.setItem('pw.lang', l), LANG);
 await page.goto('http://localhost:5199/');
 await page.waitForTimeout(2500);
 await shot('menu');
