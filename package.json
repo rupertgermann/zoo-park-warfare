@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite --port 5199",
     "build": "vite build",
-    "preview": "vite preview --port 5199"
+    "preview": "vite preview --port 5199",
+    "build:html": "node tools/build-html.mjs"
   },
   "dependencies": {
     "three": "^0.186.1"
