@@ -105,7 +105,7 @@ export function createUI(root) {
     for (const e of root.querySelectorAll('[data-tt]')) e.title = L[e.dataset.tt];
     for (const e of el('diff').querySelectorAll('label')) {
       const [name, desc] = L.diff[e.querySelector('input').value];
-      e.title = desc; e.querySelector('span').textContent = name;
+      e.title = name; e.querySelector('input').setAttribute('aria-label', `${name}: ${desc}`); e.querySelector('span').textContent = desc;
     }
     el('lang').querySelector(`[value="${lang}"]`).checked = true;
     el('bossname').textContent = L.species.eisvogel.name;

@@ -219,3 +219,5 @@ kbd {
 .seg input:checked + span { background: var(--sun); color: var(--ink); box-shadow: 0 0 0 2px var(--ink); }
 .seg input:focus-visible + span { outline: 3px solid #fff; outline-offset: 2px; }
 .seg.lang { display: inline-flex; margin: 12px 0 0; }
+.seg.diff { min-width: 0; border-radius: 28px; }
+.seg.diff span { text-align: center; line-height: 1.15; font-size: 12px; padding: 6px 10px; }
