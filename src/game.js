@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { SPECIES, BOSS, byId, TEAM_COLORS, RULES, DIFFICULTY } from './species.js';
 import { L, text } from './i18n.js';
 import { buildCreature, buildProp } from './models.js';
-import { audio } from './audio.js';
 
 const GRAVITY = 22;
 const MAX_FLY = 7.5;
@@ -129,7 +128,6 @@ export function createGame({ scene, park, fx }) {
   const center = (a, out = v1) => out.set(a.pos.x, a.pos.y + a.model.height * 0.5, a.pos.z);
   // bots fighting against the player; allies and the player keep full stats
   const rival = a => !a.isPlayer && a.team !== g.player.team;
-  const near = (a, d = 18) => a.isPlayer || a.pos.distanceTo(g.player.pos) < d;
   const fighting = () => g.phase === 'match' || g.phase === 'boss';
 
   // ---------- pools ----------
@@ -163,7 +161,6 @@ export function createGame({ scene, park, fx }) {
     if (stun && !t.isBoss) t.stunT = Math.max(t.stunT, stun);
     emit('damage', { t, src, amount, stun });
     if (t.isPlayer) g.shake = Math.max(g.shake, 0.25);
-    if (src.isPlayer || t.isPlayer || near(t, 25)) audio.sfx(t.isPlayer ? 'hurt' : 'hit', { x: t.pos.x, z: t.pos.z, vol: src.isPlayer || t.isPlayer ? 1 : 0.5 });
     if (t.hp <= 0) ko(t, src);
   }
 
@@ -178,7 +175,6 @@ export function createGame({ scene, park, fx }) {
     t.respawnT = RULES.respawn;
     t.stats.deaths++;
     fx.burst(center(t), [t.spec.accent, 0xffffff, t.spec.accent, t.spec.color], t.isBoss ? 110 : 26, { speed: t.isBoss ? 16 : 7, up: 8, life: t.isBoss ? 2.2 : 1.4, size: t.isBoss ? 2.4 : 0.9 });
-    audio.sfx('ko', { x: t.pos.x, z: t.pos.z });
     if (src !== t) src.stats.ko++;
     if (src.isPlayer) g.hitstop = 0.07;
     const scored = g.phase === 'match' && src !== t;
@@ -190,7 +186,6 @@ export function createGame({ scene, park, fx }) {
       g.hitstop = 0.6;
       g.slow = 0.3;
       winPhase1(src.team, 3);
-      audio.sfx(src.team === g.player.team ? 'win' : 'lose');
     }
     if (t.isPlayer && g.phase === 'boss' && g.lives <= 0) finish(false, L.tooFast);
   }
@@ -199,8 +194,6 @@ export function createGame({ scene, park, fx }) {
     g.result = { won, reason, crown: g.crown === g.player.team, stats: { ...g.player.stats } };
     setPhase('over', won ? 3.6 : 2.4);
     if (won) { g.hitstop = 1; g.slow = 0.3; }
-    audio.sfx(won ? 'win' : 'lose');
-    audio.music(null);
   }
 
   function hitArc(a, range, arc, dmg, knock, stun = 0) {
@@ -238,10 +231,6 @@ export function createGame({ scene, park, fx }) {
     return a.model.muzzle.getWorldPosition(new THREE.Vector3());
   }
 
-  function voice(a, vol) {
-    audio.sfx(a.spec.voice, { x: a.pos.x, z: a.pos.z, vol, pitch: a.spec.pitch });
-  }
-
   function primary(a, aim) {
     const p = a.spec.primary;
     const dmg = p.dmg * (a.rageT > 0 ? a.spec.special.mult : 1);
@@ -250,22 +239,18 @@ export function createGame({ scene, park, fx }) {
     a.anim.attack = 1;
     a.faceT = 0.45;
     a.aimYaw = Math.atan2(aim.x - a.pos.x, aim.z - a.pos.z);
-    const loud = a.isPlayer || Math.random() < 0.3;
-    if (loud && (p.kind === 'cone' || Math.random() < 0.35)) voice(a, a.isPlayer ? 0.8 : 0.5);
+    emit('attack', a);
     if (p.kind === 'shot') {
       const from = muzzle(a);
       const vel = v1.copy(aim).sub(from).normalize().multiplyScalar(p.speed).clone();
       vel.y += 1.2;
       spawnProjectile(a, { model: p.model, pos: from, vel, dmg, gravity: 2.5, spin: p.spin || 0 });
-      if (near(a)) audio.sfx('throw', { x: a.pos.x, z: a.pos.z, vol: a.isPlayer ? 0.6 : 0.3 });
     } else if (p.kind === 'lob') {
       const from = muzzle(a);
       spawnProjectile(a, { model: p.model, pos: from, vel: ballistic(from, aim, p.speed, 18), dmg, gravity: 18, splash: p.splash, life: 3 });
-      if (near(a)) audio.sfx('throw', { x: a.pos.x, z: a.pos.z, vol: 0.4 });
     } else {
       if (p.lunge) { const dx = aim.x - a.pos.x, dz = aim.z - a.pos.z, d = Math.hypot(dx, dz), step = Math.min(p.lunge, Math.max(0, d - p.range * 0.5)); if (d > 0.01) { a.pos.x += dx / d * step; a.pos.z += dz / d * step; } }
       if (hitArc(a, p.range, p.arc, dmg, p.knock) && a.isPlayer) g.hitstop = Math.max(g.hitstop, 0.035);
-      if (near(a)) audio.sfx('swing', { x: a.pos.x, z: a.pos.z, vol: a.isPlayer ? 0.7 : 0.35 });
       const f = v2.set(Math.sin(a.aimYaw), 0, Math.cos(a.aimYaw));
       const at = new THREE.Vector3(a.pos.x + f.x * p.range * 0.6, a.pos.y + 0.6, a.pos.z + f.z * p.range * 0.6);
       if (p.kind === 'cone') {
@@ -299,7 +284,6 @@ export function createGame({ scene, park, fx }) {
     emit('special', a);
     a.faceT = 0.5;
     a.aimYaw = Math.atan2(f.x, f.z);
-    const at = { x: a.pos.x, z: a.pos.z };
     switch (s.kind) {
       case 'dash': {
         const dir = s.dir === 'move' && wish && wish.lengthSq() > 0.1 ? wish.clone().normalize() : f.clone();
@@ -307,29 +291,23 @@ export function createGame({ scene, park, fx }) {
         a.dashT = s.dist / DASH_SPEED;
         a.dashHit.clear();
         if (s.dmg === 0) a.invulnT = Math.max(a.invulnT, a.dashT + 0.15);
-        audio.sfx('dash', at);
-        if (s.dmg) voice(a, 0.9);
         break;
       }
       case 'aoe':
         hitArc(a, s.radius, Math.PI, s.dmg, s.knock, s.stun);
         fx.ring(a.pos, s.radius, a.spec.accent, 0.5);
         fx.burst(center(a), [a.spec.color, a.spec.accent], 20, { speed: 10, up: 2, life: 0.6 });
-        voice(a, 1);
-        audio.sfx('boom', { ...at, vol: 0.6 });
         g.shake = Math.max(g.shake, a.isPlayer ? 0.3 : 0);
         break;
       case 'rage':
         a.rageT = s.dur;
         fx.ring(a.pos, 2.5, 0xff3b3b, 0.5);
         fx.burst(center(a), [0xff3b3b, 0xffb020, a.spec.accent], 22, { speed: 6, up: 6, life: 0.7 });
-        voice(a, 1);
         break;
       case 'dive':
         a.diveT = s.dur;
         a.invulnT = Math.max(a.invulnT, s.dur);
         fx.burst(a.pos, [0x9fd8ff, 0xffffff], 18, { speed: 5, up: 6, life: 0.6 });
-        audio.sfx('splash', at);
         break;
       case 'summon':
         for (let i = 0; i < s.count; i++) {
@@ -338,7 +316,6 @@ export function createGame({ scene, park, fx }) {
           mesh.position.set(a.pos.x + Math.sin(ang) * 1.2, s.fly ? 1.5 : 0, a.pos.z + Math.cos(ang) * 1.2);
           g.summons.push({ kind: 'summon', spec: s, owner: a, mesh, model: s.model, life: s.dur, max: s.dur, tickT: 0, ang });
         }
-        audio.sfx('summon', at);
         break;
       case 'lifesteal': {
         const t = nearestHostile(a, s.range);
@@ -347,18 +324,15 @@ export function createGame({ scene, park, fx }) {
         heal(a, Math.max(0, before - Math.max(0, t.hp)));
         const from = center(t, new THREE.Vector3()), to = center(a, new THREE.Vector3());
         for (let i = 0; i <= 8; i++) fx.burst(from.clone().lerp(to, i / 8), [a.spec.accent, 0xffe066], 2, { speed: 1, up: 1, life: 0.6, gravity: 0 });
-        audio.sfx('steal', at);
         break;
       }
       case 'stun':
         hitArc(a, s.range, s.arc, s.dmg, 2, s.stun);
         fx.burst(muzzle(a), 0xffffff, 30, { speed: 12, up: 1, life: 0.3, gravity: 0, size: 1.5 });
-        audio.sfx('stun', at);
         break;
       case 'bomb': {
         const from = muzzle(a);
         spawnProjectile(a, { model: s.model, pos: from, vel: ballistic(from, aim, s.speed, 18), dmg: s.dmg, gravity: 18, splash: s.radius, life: 3, r: 0.6, knock: 10, spin: 6 });
-        audio.sfx('throw', at);
         break;
       }
     }
@@ -370,7 +344,7 @@ export function createGame({ scene, park, fx }) {
     a.anim.t += dt;
     const wasCooling = a.cdS > 0;
     for (const k of ['cdP', 'cdS', 'stunT', 'invulnT', 'knockT', 'dashT', 'diveT', 'faceT', 'rageT']) a[k] = Math.max(0, a[k] - dt);
-    if (a.isPlayer && wasCooling && a.cdS === 0 && a.alive) audio.sfx('uiMove', { vol: 0.5, pitch: 1.5 });
+    if (wasCooling && a.cdS === 0 && a.alive) emit('specialReady', a);
     a.anim.attack = Math.max(0, a.anim.attack - dt * 3);
     a.anim.hurt = Math.max(0, a.anim.hurt - dt * 4);
     a.anim.special = a.diveT > 0 || a.rageT > 0 ? 1 : Math.max(0, a.anim.special - dt * 2);
@@ -387,7 +361,7 @@ export function createGame({ scene, park, fx }) {
     const water = park.isWater(a.pos.x, a.pos.z);
     if (water && !a.inWater && a.pos.y < 0.5) {
       fx.burst(a.pos, [0x9fd8ff, 0xffffff], 10, { speed: 3, up: 5, life: 0.5 });
-      audio.sfx('splash', { x: a.pos.x, z: a.pos.z, vol: a.isPlayer ? 0.7 : 0.25 });
+      emit('splash', a);
     }
     a.inWater = water && a.pos.y < 0.3;
     let speed = s.speed * (rival(a) ? g.diff.speed : 1) * (a.inWater ? (s.swims ? (s.swimMult || 1.2) : 0.55) : 1);
@@ -411,10 +385,10 @@ export function createGame({ scene, park, fx }) {
     if (canAct && c.jump) {
       if (a.onGround || a.inWater) {
         a.vel.y = s.jump;
-        if (near(a, 12)) audio.sfx('jump', { x: a.pos.x, z: a.pos.z, vol: a.isPlayer ? 0.5 : 0.2 });
+        emit('jump', { a, flap: false });
       } else if (s.flies && a.pos.y < MAX_FLY) {
         a.vel.y = Math.max(a.vel.y, 6.5);
-        if (near(a, 12)) audio.sfx('flap', { x: a.pos.x, z: a.pos.z, vol: a.isPlayer ? 0.5 : 0.2 });
+        emit('jump', { a, flap: true });
       }
     }
     a.vel.y -= GRAVITY * dt;
@@ -521,7 +495,7 @@ export function createGame({ scene, park, fx }) {
     }
     fx.ring({ x: pos.x, y: Math.max(0, pos.y - 0.3), z: pos.z }, radius, owner.spec.accent, 0.45);
     fx.burst(pos, [owner.spec.color, owner.spec.accent, 0xffffff], 18, { speed: 8, up: 6, life: 0.7 });
-    audio.sfx('boom', { x: pos.x, z: pos.z, vol: owner.isPlayer ? 0.8 : 0.45 });
+    emit('explode', { owner, pos });
     if (owner.isPlayer || g.player.pos.distanceTo(pos) < radius * 2) g.shake = Math.max(g.shake, 0.2);
   }
 
@@ -544,7 +518,7 @@ export function createGame({ scene, park, fx }) {
           m.rotation.y = Math.atan2(dir.x, dir.z);
           if (sp.fly) {
             m.position.y += Math.sin(s.life * 14) * 0.03;
-            if (d < 1.2 && (s.tickT -= dt) <= 0) { s.tickT = sp.tick; damage(t, sp.dmg, s.owner, null); audio.sfx(s.owner.spec.voice, { x: m.position.x, z: m.position.z, vol: 0.25 }); }
+            if (d < 1.2 && (s.tickT -= dt) <= 0) { s.tickT = sp.tick; damage(t, sp.dmg, s.owner, null); emit('summonHit', { owner: s.owner, pos: m.position }); }
           } else {
             m.position.y = Math.abs(Math.sin(s.life * 16)) * 0.15 + (park.isWater(m.position.x, m.position.z) ? park.waterLevel : 0);
             if (d < 1.1) s.life = 0;
@@ -572,7 +546,6 @@ export function createGame({ scene, park, fx }) {
         p.respawnT = 14;
         p.mesh.visible = false;
         fx.burst(p.mesh.position, [0x9dff6a, 0xffe08a], 12, { speed: 3, up: 4, life: 0.6 });
-        audio.sfx('pickup', { x: p.x, z: p.z, vol: a.isPlayer ? 1 : 0.3 });
         emit('pickup', a);
         break;
       }
@@ -725,7 +698,6 @@ export function createGame({ scene, park, fx }) {
     if (enraged && !ai.enraged) {
       ai.enraged = true;
       emit('bossEnraged', b);
-      audio.sfx('screech', { x: b.pos.x, z: b.pos.z });
     }
     ai.t -= dt;
     const goto = (x, y, z, sp) => {
@@ -749,7 +721,7 @@ export function createGame({ scene, park, fx }) {
           ai.shotT = enraged ? 1.4 : 2.1;
           const n = enraged ? 5 : 3;
           b.anim.special = 0.6;
-          audio.sfx('screech', { x: b.pos.x, z: b.pos.z, vol: 0.5, pitch: 1.3 });
+          emit('bossVolley', b);
           for (let i = 0; i < n; i++) {
             const t = bossTarget();
             if (!t) break;
@@ -763,7 +735,7 @@ export function createGame({ scene, park, fx }) {
       case 'telegraph':
         goto(ai.point.x * 0.6, H + 3, ai.point.z * 0.6, 14);
         b.anim.special = 1;
-        if (ai.t <= 0) { ai.mode = 'dive'; audio.sfx('bossDive', { x: b.pos.x, z: b.pos.z }); }
+        if (ai.t <= 0) { ai.mode = 'dive'; emit('bossDive', b); }
         break;
       case 'dive': {
         b.anim.attack = 1;
@@ -814,7 +786,6 @@ export function createGame({ scene, park, fx }) {
     if (!ai.target) return;
     ai.point.set(ai.target.pos.x, 0, ai.target.pos.z);
     ai.mark = fx.ring(ai.point, 4.5, 0xff2a2a, 10, { grow: false, follow: ai.point });
-    audio.sfx('screech', { x: g.boss.pos.x, z: g.boss.pos.z, vol: 0.9 });
     emit('bossTarget', ai.target);
   }
 
@@ -826,8 +797,6 @@ export function createGame({ scene, park, fx }) {
     }
     fx.ring({ x: pos.x, y: 0, z: pos.z }, 6, BOSS.color, 0.6);
     fx.burst(pos, [0x9fd8ff, 0xffffff, BOSS.color], 40, { speed: 12, up: 9, life: 1 });
-    audio.sfx('boom', { x: pos.x, z: pos.z });
-    audio.sfx('splash', { x: pos.x, z: pos.z });
     g.shake = Math.max(g.shake, 0.6 - Math.min(0.5, g.player.pos.distanceTo(pos) / 60));
   }
 
@@ -839,12 +808,12 @@ export function createGame({ scene, park, fx }) {
     if (g.phaseT > 0) g.phaseT -= dt;
     if (g.phase === 'countdown') {
       const n = Math.ceil(g.phaseT);
-      if (n > 0 && n !== lastCount) { lastCount = n; emit('countdown', n); audio.sfx('countdown'); }
+      if (n > 0 && n !== lastCount) { lastCount = n; emit('countdown', n); }
     }
-    if (g.phase === 'countdown' && g.phaseT <= 0) { setPhase('match'); audio.sfx('go'); audio.music('match'); }
+    if (g.phase === 'countdown' && g.phaseT <= 0) { setPhase('match'); }
     if (g.phase === 'won') for (const a of g.actors) if (!a.alive) respawn(a); // nobody can die during 'won', so this runs once in effect
-    if (g.phase === 'won' && g.phaseT <= 0) { setPhase('bossIntro', 4.5); spawnBoss(); audio.music(null); audio.sfx('bossIntro'); }
-    if (g.phase === 'bossIntro' && g.phaseT <= 0) { setPhase('boss'); audio.music('boss'); for (const a of g.actors) if (!a.alive && !a.isBoss) respawn(a); }
+    if (g.phase === 'won' && g.phaseT <= 0) { setPhase('bossIntro', 4.5); spawnBoss(); }
+    if (g.phase === 'bossIntro' && g.phaseT <= 0) { setPhase('boss'); for (const a of g.actors) if (!a.alive && !a.isBoss) respawn(a); }
 
     const frozen = g.phase === 'countdown' || g.phase === 'bossIntro';
     for (const a of g.actors) {

@@ -8,6 +8,7 @@ import { input } from './input.js';
 import { createFx } from './fx.js';
 import { createUI } from './ui.js';
 import { createGame } from './game.js';
+import { bindSounds } from './sounds.js';
 import { createPost } from './post.js';
 
 const canvas = document.getElementById('view');
@@ -28,6 +29,7 @@ const fx = createFx(scene);
 const ui = createUI(document.getElementById('ui'));
 const game = createGame({ scene, park, fx });
 ui.bind(game);
+bindSounds(game);
 const post = createPost(renderer, scene, camera);
 
 // ---------- portraits ----------
