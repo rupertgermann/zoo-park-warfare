@@ -1,4 +1,4 @@
-# Park Warfare: brief and module contracts
+# Zoo Park Warfare: brief and module contracts
 
 A funny, colorful third-person arena brawler in a city park, homage to karenwarfare.fun.
 The player picks one of twelve factions (see `src/species.js`, the single source of truth for stats).
