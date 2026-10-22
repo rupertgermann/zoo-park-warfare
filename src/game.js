@@ -17,7 +17,7 @@ const angleDiff = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
 
 const ringGeo = new THREE.RingGeometry(0.75, 1, 32).rotateX(-Math.PI / 2);
 
-export function createGame({ scene, park, fx, ui }) {
+export function createGame({ scene, park, fx }) {
   // what happened in the match; ui, chat and sounds listen, the rules don't know who
   const listeners = {};
   const emit = (type, e) => listeners[type]?.forEach(fn => fn(e));
@@ -29,7 +29,6 @@ export function createGame({ scene, park, fx, ui }) {
   };
   const pool = {};
   let lastCount = 0; // last countdown number shown
-  ui.bind(g);
 
   // ---------- setup ----------
   function clear() {
@@ -101,7 +100,6 @@ export function createGame({ scene, park, fx, ui }) {
     g.crown = -1;
     lastCount = 0;
     setPhase('countdown', 3);
-    ui.matchStart();
   }
 
   function placeAtSpawn(a, i = Math.random() * 3) {
@@ -124,7 +122,6 @@ export function createGame({ scene, park, fx, ui }) {
   function setPhase(p, t = 0) {
     g.phase = p;
     g.phaseT = t;
-    ui.phase(p);
     emit('phase', p);
   }
 
@@ -164,8 +161,8 @@ export function createGame({ scene, park, fx, ui }) {
       if (knock >= 6) { t.vel.y = Math.max(t.vel.y, knock * 0.3); t.knockT = 0.3; }
     }
     if (stun && !t.isBoss) t.stunT = Math.max(t.stunT, stun);
-    if (src.isPlayer) ui.hitmarker(t, amount, t.hp <= 0);
-    if (t.isPlayer) { ui.hurt(src, stun > 0 && src.spec.special?.kind === 'stun'); g.shake = Math.max(g.shake, 0.25); }
+    emit('damage', { t, src, amount, stun });
+    if (t.isPlayer) g.shake = Math.max(g.shake, 0.25);
     if (src.isPlayer || t.isPlayer || near(t, 25)) audio.sfx(t.isPlayer ? 'hurt' : 'hit', { x: t.pos.x, z: t.pos.z, vol: src.isPlayer || t.isPlayer ? 1 : 0.5 });
     if (t.hp <= 0) ko(t, src);
   }
@@ -184,27 +181,18 @@ export function createGame({ scene, park, fx, ui }) {
     audio.sfx('ko', { x: t.pos.x, z: t.pos.z });
     if (src !== t) src.stats.ko++;
     if (src.isPlayer) g.hitstop = 0.07;
-    ui.killfeed(src, t);
-    if (t.isBoss) return finish(true);
-    if (g.phase === 'match' && src !== t) {
-      g.scores[src.team]++;
-      ui.scores();
-      if (g.scores[src.team] >= RULES.koToWin) {
-        g.hitstop = 0.6;
-        g.slow = 0.3;
-        winPhase1(src.team, 3);
-        audio.sfx(src.team === g.player.team ? 'win' : 'lose');
-      }
-    }
+    const scored = g.phase === 'match' && src !== t;
+    if (scored) g.scores[src.team]++;
+    if (t.isPlayer && g.phase === 'boss') g.lives--;
     emit('ko', { src, t });
-    if (t.isPlayer) {
-      if (g.phase === 'boss') {
-        g.lives--;
-        ui.lives(g.lives);
-        if (g.lives <= 0) return finish(false, L.tooFast);
-      }
-      ui.died(src, t.respawnT);
+    if (t.isBoss) return finish(true);
+    if (scored && g.scores[src.team] >= RULES.koToWin) {
+      g.hitstop = 0.6;
+      g.slow = 0.3;
+      winPhase1(src.team, 3);
+      audio.sfx(src.team === g.player.team ? 'win' : 'lose');
     }
+    if (t.isPlayer && g.phase === 'boss' && g.lives <= 0) finish(false, L.tooFast);
   }
 
   function finish(won, reason) {
@@ -304,11 +292,11 @@ export function createGame({ scene, park, fx, ui }) {
     if (a.cdS > 0 || a.stunT > 0) return;
     const f = v2.set(aim.x - a.pos.x, 0, aim.z - a.pos.z).normalize();
     if (s.kind === 'lifesteal' || s.kind === 'summon') {
-      if (!nearestHostile(a, s.range ?? 40)) { if (a.isPlayer) ui.toast(L.noTarget); return; }
+      if (!nearestHostile(a, s.range ?? 40)) { emit('noTarget', a); return; }
     }
     a.cdS = s.cd;
     a.anim.special = 1;
-    if (!a.isPlayer) ui.cast(a);
+    emit('special', a);
     a.faceT = 0.5;
     a.aimYaw = Math.atan2(f.x, f.z);
     const at = { x: a.pos.x, z: a.pos.z };
@@ -491,7 +479,7 @@ export function createGame({ scene, park, fx, ui }) {
     a.stunT = a.dashT = a.diveT = a.rageT = 0;
     placeAtSpawn(a);
     fx.burst(a.pos, [TEAM_COLORS[a.team], 0xffffff], 16, { speed: 3, up: 6, life: 0.7 });
-    if (a.isPlayer) ui.respawned();
+    emit('respawn', a);
   }
 
   // ---------- projectiles & summons ----------
@@ -585,7 +573,7 @@ export function createGame({ scene, park, fx, ui }) {
         p.mesh.visible = false;
         fx.burst(p.mesh.position, [0x9dff6a, 0xffe08a], 12, { speed: 3, up: 4, life: 0.6 });
         audio.sfx('pickup', { x: p.x, z: p.z, vol: a.isPlayer ? 1 : 0.3 });
-        if (a.isPlayer) ui.toast(L.bread);
+        emit('pickup', a);
         break;
       }
     }
@@ -736,10 +724,9 @@ export function createGame({ scene, park, fx, ui }) {
     const R = 16, H = 11;
     if (enraged && !ai.enraged) {
       ai.enraged = true;
-      ui.banner(L.enrage, L.enrageSub, 2.4, 'boss');
+      emit('bossEnraged', b);
       audio.sfx('screech', { x: b.pos.x, z: b.pos.z });
     }
-    ui.bossStunned(ai.mode === 'stunned' && ai.divesLeft <= 0);
     ai.t -= dt;
     const goto = (x, y, z, sp) => {
       v1.set(x - b.pos.x, y - b.pos.y, z - b.pos.z);
@@ -786,7 +773,7 @@ export function createGame({ scene, park, fx, ui }) {
           explodeBoss(b.pos);
           ai.mode = 'stunned';
           ai.t = ai.divesLeft > 0 ? 0.7 : 2.6;
-          if (ai.divesLeft <= 0) ui.toast(L.bossDazed);
+          emit('bossLand', { pos: b.pos, dazed: ai.divesLeft <= 0 });
         }
         break;
       }
@@ -828,7 +815,7 @@ export function createGame({ scene, park, fx, ui }) {
     ai.point.set(ai.target.pos.x, 0, ai.target.pos.z);
     ai.mark = fx.ring(ai.point, 4.5, 0xff2a2a, 10, { grow: false, follow: ai.point });
     audio.sfx('screech', { x: g.boss.pos.x, z: g.boss.pos.z, vol: 0.9 });
-    if (ai.target.isPlayer) ui.toast(L.bossTargets);
+    emit('bossTarget', ai.target);
   }
 
   function explodeBoss(pos) {
@@ -852,7 +839,7 @@ export function createGame({ scene, park, fx, ui }) {
     if (g.phaseT > 0) g.phaseT -= dt;
     if (g.phase === 'countdown') {
       const n = Math.ceil(g.phaseT);
-      if (n > 0 && n !== lastCount) { lastCount = n; ui.banner(String(n), L.ready, 1.2, 'count'); audio.sfx('countdown'); }
+      if (n > 0 && n !== lastCount) { lastCount = n; emit('countdown', n); audio.sfx('countdown'); }
     }
     if (g.phase === 'countdown' && g.phaseT <= 0) { setPhase('match'); audio.sfx('go'); audio.music('match'); }
     if (g.phase === 'won') for (const a of g.actors) if (!a.alive) respawn(a); // nobody can die during 'won', so this runs once in effect

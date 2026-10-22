@@ -172,8 +172,27 @@ export function createUI(root) {
   // ---------- match ----------
   function bind(g) {
     game = g;
-    g.on('phase', chat.phase);
-    g.on('ko', ({ src, t }) => chat.ko(src, t));
+    g.on('phase', p => { phase(p); if (p === 'countdown') matchStart(); chat.phase(p); });
+    g.on('countdown', n => banner(String(n), L.ready, 1.2, 'count'));
+    g.on('damage', ({ t, src, amount, stun }) => {
+      if (src.isPlayer) hitmarker(t, amount, t.hp <= 0);
+      if (t.isPlayer) hurt(src, stun > 0 && src.spec.special?.kind === 'stun');
+    });
+    g.on('ko', ({ src, t }) => {
+      killfeed(src, t);
+      if (game.phase === 'match') scores();
+      if (!t.isBoss) chat.ko(src, t);
+      if (!t.isPlayer) return;
+      if (game.phase === 'boss') lives(game.lives);
+      if (game.phase !== 'boss' || game.lives > 0) died(src, t.respawnT);
+    });
+    g.on('special', a => a.isPlayer || cast(a));
+    g.on('noTarget', a => a.isPlayer && toast(L.noTarget));
+    g.on('pickup', a => a.isPlayer && toast(L.bread));
+    g.on('respawn', a => a.isPlayer && respawned());
+    g.on('bossEnraged', () => banner(L.enrage, L.enrageSub, 2.4, 'boss'));
+    g.on('bossLand', e => e.dazed && toast(L.bossDazed));
+    g.on('bossTarget', t => t.isPlayer && toast(L.bossTargets));
   }
   function matchStart() {
     el('menu').hidden = el('result').hidden = el('pause').hidden = true;
@@ -240,8 +259,6 @@ export function createUI(root) {
 
   // a rival's special: name it above its head so you know what just hit you
   function cast(a) { const pe = plates.get(a); if (pe) pe.castT = 1.3; }
-
-  function bossStunned(on) { el('bossbar').classList.toggle('stunned', on); }
 
   function lives(n) {
     el('lives').innerHTML = Array.from({ length: game.diff.lives }, (_, i) => `<span class="${i < n ? '' : 'lost'}">♥</span>`).join('');
@@ -341,7 +358,10 @@ export function createUI(root) {
     cd(el('abP'), p.cdP / p.spec.primary.rate);
     cd(el('abS'), p.cdS / p.spec.special.cd, Math.ceil(p.cdS));
     if (deadT > 0) { deadT -= dt; el('dead').querySelector('.count').textContent = deadT > 0 ? L.backIn(Math.ceil(deadT)) : ''; }
-    if (game.boss) el('bosshp').style.width = (game.boss.hp / game.boss.maxHp * 100) + '%';
+    if (game.boss) {
+      el('bosshp').style.width = (game.boss.hp / game.boss.maxHp * 100) + '%';
+      if (game.boss.alive) el('bossbar').classList.toggle('stunned', game.bossAi.mode === 'stunned' && game.bossAi.divesLeft <= 0);
+    }
     bossArrow(camera);
 
     if (hurtT > 0) {
@@ -410,8 +430,7 @@ export function createUI(root) {
 
   relabel();
   return {
-    el, portraits, bind, bossStunned, cast, buildGrid, setLanguage, showMenu, setSelected, matchStart, scores, phase, lives, killfeed, hitmarker, hurt, died, respawned,
-    toast, banner, showResult, showPause, update, setMuted,
+    el, portraits, bind, buildGrid, setLanguage, showMenu, setSelected, showResult, showPause, update, setMuted,
     hideHud() { hud.hidden = true; },
   };
 }

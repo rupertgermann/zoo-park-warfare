@@ -26,7 +26,8 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const park = buildPark(scene);
 const fx = createFx(scene);
 const ui = createUI(document.getElementById('ui'));
-const game = createGame({ scene, park, fx, ui });
+const game = createGame({ scene, park, fx });
+ui.bind(game);
 const post = createPost(renderer, scene, camera);
 
 // ---------- portraits ----------
@@ -370,4 +371,4 @@ requestAnimationFrame(frame);
 addEventListener('pointerdown', () => audio.unlock(), { once: true });
 
 // test hook for automated playtests
-window.__pw = { game, app, startMatch, toMenu, select, cam, camera, renderer };
+window.__pw = { game, app, startMatch, toMenu, select, cam, camera, renderer, audio };
