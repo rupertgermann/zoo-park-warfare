@@ -242,7 +242,7 @@ export function createAudio(injected = null) {
       });
     },
     jump(p) {
-      tone(p, { f: [[0, 220], [1, 640]], d: 0.14, g: 0.28, a: 0.005, ft: 'lowpass', ff: 2500 });
+      tone(p, { f: [[0, 220], [1, 640]], d: 0.14, g: 0.36, a: 0.005, ft: 'lowpass', ff: 2500 });
     },
     flap(p) {
       noise(p, { d: 0.07, g: 0.8, a: 0.01, ft: 'lowpass', ff: [500, 1200] });

@@ -1,15 +1,13 @@
 // Close-up of every legged animal at the countdown, for checking that legs meet the body.
 // node tools/legs.mjs [tag]  -> .audit/shots/legs/<tag>-<id>.png
-import { chromium } from 'playwright-core';
-import { homedir } from 'node:os';
+import { launch } from './chrome.mjs';
 import { mkdirSync } from 'node:fs';
 
 const tag = process.argv[2] || 'now';
 const PITCH = Number(process.argv[3] ?? 0.12); // camera pitch; negative looks up from below. argv[4]: comma-separated species ids
 const IDS = (process.argv[4] || 'gans,nilgans,schwan,kormoran,ente,taube,kraehe,elster,sittich,nutria').split(',');
 mkdirSync('.audit/shots/legs', { recursive: true });
-const exe = `${homedir()}/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`;
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--use-angle=metal'] });
+const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1200, height: 800 }, deviceScaleFactor: 2 });
 const errors = [];
 page.on('pageerror', e => errors.push(String(e)));

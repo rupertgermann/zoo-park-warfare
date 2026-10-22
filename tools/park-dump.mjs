@@ -1,11 +1,9 @@
 // Usage: node tools/park-dump.mjs [out.json]   (dev server on :5199). Prints a digest and, with an arg, writes the full JSON.
 // Also builds the park twice in one page to prove buildPark is idempotent.
-import { chromium } from 'playwright-core';
+import { launch } from './chrome.mjs';
 import { writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { homedir } from 'node:os';
-const exe = process.env.CHROME || `${homedir()}/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`;
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--use-angle=metal'] });
+const browser = await launch();
 const page = await browser.newPage();
 const errs = [];
 page.on('pageerror', e => errs.push(e.message));

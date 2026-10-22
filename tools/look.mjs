@@ -1,8 +1,7 @@
 // Visual check for render changes: menu, match, pond and boss shots plus fps and draw calls.
 // node tools/look.mjs [tag] [--w 1440 --h 900 --dpr 1 --lang de|en]  -> .audit/shots/look/<tag>-*.png
-import { chromium } from 'playwright-core';
+import { launch } from './chrome.mjs';
 import { mkdirSync } from 'node:fs';
-import { homedir } from 'node:os';
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
@@ -12,8 +11,7 @@ const LANG = opt('--lang', null);
 const out = '.audit/shots/look';
 mkdirSync(out, { recursive: true });
 
-const exe = `${homedir()}/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`;
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--use-angle=metal'] });
+const browser = await launch();
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: DPR });
 const errors = [];
 page.on('pageerror', e => errors.push(String(e)));
