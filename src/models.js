@@ -592,6 +592,69 @@ const BUILD = {
     part(cap, 'ball', rig.teamMat, [0, 0.19, 0], 0.03);
     rig.swimDrop = 0.7;
   },
+
+  menschF(rig) {
+    // Parkbesucherin, "the Karen": asymmetric bob with sunglasses parked in it, fleece vest, capri leggings,
+    // white sneakers, team sun visor, bread bag carried like a handbag. Same rig points as the dad.
+    rig.gait = 'walk'; rig.peck = 0.25; rig.lunge = 0.06;
+    const { body } = rig, vest = 0x7a3f5e, vestDark = 0x5c2c46, shirt = 0xeadfcc, legging = 0x2c2c38, skin = 0xf3c2a0;
+    const hair = 0xe0bd72, lowlight = 0xb08144, shades = mat(0x1a1a24, { metal: 0.5, rough: 0.25 });
+    [1, -1].forEach(side => {
+      const L = grp(body, [side * 0.14, 0.5, 0]);
+      part(L, 'limb', legging, [0, 0.02, 0], [0.125, 0.33, 0.125]);
+      part(L, 'limb', skin, [0, -0.29, 0], [0.072, 0.12, 0.072]); // bare ankle
+      part(L, 'box', WHITE, [0, -0.44, 0.06], [0.16, 0.09, 0.28]); // sneaker
+      part(L, 'sphere', WHITE, [0, -0.44, 0.19], [0.08, 0.05, 0.06]); // toe cap
+      part(L, 'box', 0xd8dbe2, [0, -0.485, 0.07], [0.17, 0.03, 0.31]); // sole
+      rig.legs.push({ g: L, phase: side > 0 ? 0 : PI });
+    });
+    part(body, 'sphere', legging, [0, 0.6, 0], [0.3, 0.17, 0.24]);
+    part(body, 'sphere', vest, [0, 0.9, 0], [0.37, 0.37, 0.31]);
+    part(body, 'sphere', shirt, [0, 0.9, 0.05], [0.17, 0.35, 0.28]); // shirt showing where the vest is open
+    part(body, 'sphere', vestDark, [0, 0.66, 0.03], [0.33, 0.06, 0.28]); // elastic hem
+    part(body, 'sphere', vest, [0, 1.12, -0.03], [0.33, 0.22, 0.26]); // shoulders
+    part(body, 'torus', vest, [0, 1.26, 0], [0.17, 0.17, 0.35], [PI / 2, 0, 0]); // fleece collar
+    [1, -1].forEach(side => {
+      const A = grp(body, [side * 0.37, 1.15, 0], [0, 0, side * 0.25]);
+      part(A, 'limb', shirt, [0, 0, 0], [0.085, 0.42, 0.085]);
+      part(A, 'cyl', 0xe2b13c, [0, -0.43, 0], [0.075, 0.03, 0.075]); // bangle
+      part(A, 'ball', skin, [0, -0.49, 0], 0.085);
+      rig.arms.push({ g: A, phase: side > 0 ? PI : 0 });
+      if (side > 0) { // bread bag hooked over the forearm like a handbag
+        part(A, 'torus', 0xf4f8ff, [0.06, -0.32, 0], [0.1, 0.12, 0.12], [0, PI / 2, 0]); // handles
+        const bag = grp(A, [0.09, -0.52, 0], [0, 0, -0.25]);
+        part(bag, 'box', 0xe8b46a, [0, -0.02, 0], [0.14, 0.24, 0.22]); // sliced loaf
+        part(bag, 'box', 0xa8642a, [0, -0.02, 0.111], [0.142, 0.24, 0.012]); // crust end
+        part(bag, 'sphere', mat(0xf4f8ff, { opacity: 0.45, rough: 0.2 }), [0, 0, 0], [0.11, 0.19, 0.16]);
+        part(bag, 'cyl', 0xffcf33, [0, 0.18, 0], [0.045, 0.02, 0.045]); // twist tie
+      } else {
+        rig.throwArm = A;
+        rig.muzzle = grp(A, [0, -0.6, 0.06]);
+      }
+    });
+    rig.neck = grp(body, [0, 1.3, 0.03]);
+    const head = rig.head = grp(rig.neck, [0, 0.27, 0.02]);
+    part(head, 'sphere', skin, [0, 0, 0], [0.26, 0.26, 0.25]);
+    for (const s of [1, -1]) part(head, 'sphere', 0xf0927a, [s * 0.15, -0.07, 0.19], [0.06, 0.04, 0.03]); // blush
+    part(head, 'sphere', 0xe8a080, [0, -0.03, 0.26], [0.045, 0.05, 0.05]); // nose
+    for (const s of [1, -1]) part(head, 'ball', 0xe2b13c, [s * 0.255, -0.1, 0], 0.03); // earrings
+    rig.jaw = grp(head, [0, -0.15, 0.22]);
+    part(rig.jaw, 'arc', 0xc22a4a, [0, -0.02, 0], [0.065, 0.04, 0.06]); // lipstick frown
+    addEyes(rig, head, { r: 0.085, x: 0.1, y: 0.03, z: 0.19, yaw: 0.25, brow: [0.55, -0.25], browColor: 0x5a3a1e, browW: 1.7, browH: 0.38 });
+    // asymmetric bob: stacked short at the back, long on her right, swept fringe
+    part(head, 'sphere', hair, [0, 0.07, -0.04], [0.3, 0.27, 0.29]);
+    part(head, 'sphere', lowlight, [0, -0.07, -0.15], [0.25, 0.16, 0.16]);
+    part(head, 'sphere', hair, [0.22, -0.1, 0.05], [0.11, 0.25, 0.19], [0, 0, 0.12]);
+    part(head, 'sphere', hair, [-0.22, -0.03, 0.03], [0.1, 0.17, 0.17], [0, 0, -0.1]);
+    part(head, 'sphere', hair, [0.07, 0.22, 0.13], [0.23, 0.08, 0.12], [0.3, 0, 0.3]);
+    const visor = grp(head, [0, 0.16, -0.01], [-0.25, 0, 0]);
+    addBand(rig, visor, [0, 0, 0], 0.3, { height: 0.45, tails: 0 });
+    part(visor, 'cyl', rig.teamMat, [0, -0.01, 0.27], [0.21, 0.02, 0.15]); // brim
+    const glasses = grp(head, [0, 0.29, 0.12], [-0.7, 0, 0]);
+    for (const s of [1, -1]) part(glasses, 'sphere', shades, [s * 0.075, 0, 0], [0.07, 0.05, 0.02]);
+    part(glasses, 'box', shades, [0, 0.01, 0], [0.06, 0.012, 0.012]);
+    rig.swimDrop = 0.7;
+  },
 };
 
 // ---------- animation ----------
@@ -781,14 +844,15 @@ function bake(scope, bones, key) {
   });
 }
 
-export function buildCreature(id) {
+export function buildCreature(id, gender = 'm') {
+  const key = gender === 'f' && BUILD[id + 'F'] ? id + 'F' : id;
   const rig = newRig(id);
-  BUILD[id](rig);
+  BUILD[key](rig);
   if (rig.head) rig.headZ = rig.head.position.z;
   for (const E of rig.ears) E.userData.rx = E.rotation.x;
   rig.flutters.forEach((f, i) => { f.userData.fid = i * 1.7; });
   bake(rig.body, new Set([rig.body, rig.neck, rig.headBob ? rig.head : null, rig.jaw, rig.tail, rig.lid,
-    ...rig.legs.map(L => L.g), ...rig.arms.map(A => A.g), ...rig.wings, ...rig.ears, ...rig.flutters]), id);
+    ...rig.legs.map(L => L.g), ...rig.arms.map(A => A.g), ...rig.wings, ...rig.ears, ...rig.flutters]), key);
 
   // normalize to game-scale height: the brief's heights are to the top of the head, ears stick out above
   rig.root.updateMatrixWorld(true);

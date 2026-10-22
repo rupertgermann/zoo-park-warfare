@@ -56,6 +56,9 @@ kbd {
 .abil kbd { min-width: 88px; text-align: center; }
 .abil b { display: block; font-size: 16px; }
 .abil small { display: block; font-weight: 600; opacity: .75; font-size: 13px; }
+.gender { display: flex; gap: 6px; margin-top: 8px; }
+.gender button { width: 40px; height: 32px; font-size: 18px; font-weight: 900; background: #fff; border: 2px solid var(--ink); border-radius: 99px; }
+.gender [aria-checked="true"] { background: var(--sun); box-shadow: 0 3px 0 var(--ink); }
 .traits { margin-top: 14px; display: flex; gap: 6px; flex-wrap: wrap; }
 .traits span { font-size: 12px; font-weight: 800; background: #fff; border: 2px solid var(--ink); border-radius: 99px; padding: 3px 9px; }
 .menu-foot { grid-column: 1 / 4; grid-row: 3; padding-right: 58px; display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; }

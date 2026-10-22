@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SPECIES, byId, DIFFICULTY } from './species.js';
+import { SPECIES, byId, DIFFICULTY, gendered, voicePitch } from './species.js';
 import { L, setLang } from './i18n.js';
 import { buildCreature } from './models.js';
 import { buildPark } from './park.js';
@@ -30,6 +30,7 @@ const game = createGame({ scene, park, fx, ui });
 const post = createPost(renderer, scene, camera);
 
 // ---------- portraits ----------
+const menschPortrait = {}; // the grid shows the player's own gender
 (function makePortraits() {
   const r = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
   r.setSize(160, 160);
@@ -40,8 +41,8 @@ const post = createPost(renderer, scene, camera);
   sun.position.set(2, 4, 5);
   s.add(sun);
   const cam = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
-  for (const sp of SPECIES) {
-    const c = buildCreature(sp.id);
+  for (const [id, gender] of [...SPECIES.map(sp => [sp.id, 'm']), ['mensch', 'f']]) {
+    const c = buildCreature(id, gender);
     c.update(0.016, { t: 0 });
     c.root.rotation.y = 0.55;
     s.add(c.root);
@@ -50,7 +51,8 @@ const post = createPost(renderer, scene, camera);
     cam.position.set(mid.x, mid.y + half * 0.25, mid.z + half / Math.tan(THREE.MathUtils.degToRad(15)));
     cam.lookAt(mid);
     r.render(s, cam);
-    ui.portraits[sp.id] = r.domElement.toDataURL();
+    const url = r.domElement.toDataURL();
+    if (id === 'mensch') menschPortrait[gender] = url; else ui.portraits[id] = url;
     s.remove(c.root);
   }
   r.dispose();
@@ -61,6 +63,13 @@ ui.buildGrid();
 // ---------- app state ----------
 const app = { mode: 'menu', paused: false, resultShown: false, selected: localStorage.getItem('pw.species') || 'gans' };
 if (!byId[app.selected]) app.selected = 'gans';
+function setGender(g) {
+  app.gender = g;
+  ui.portraits.mensch = menschPortrait[g];
+  ui.setGender(g);
+}
+setGender(localStorage.getItem('pw.gender') === 'f' ? 'f' : 'm');
+const pitchOf = id => voicePitch(byId[id], gendered(byId[id]) ? app.gender : 'm');
 const cam = { yaw: 0, pitch: 0.18, pos: new THREE.Vector3() };
 
 // Menu showcase: the selected creature on a little lawn spot by the pond, camera orbiting slowly.
@@ -80,7 +89,7 @@ const SHOW = (() => {
 
 function setShowcase(id) {
   if (showcase.model) showcase.root.remove(showcase.model.root);
-  showcase.model = buildCreature(id);
+  showcase.model = buildCreature(id, app.gender);
   showcase.model.setTeamColor(0xffd23f);
   showcase.root.add(showcase.model.root);
   showcase.root.position.copy(SHOW.pos);
@@ -94,9 +103,21 @@ function select(id) {
   ui.setSelected(id);
   setShowcase(id);
   audio.sfx('uiMove');
-  audio.sfx(byId[id].voice, { vol: 0.6, pitch: byId[id].pitch });
+  greet(id);
+}
+
+function greet(id) {
+  audio.sfx(byId[id].voice, { vol: 0.6, pitch: pitchOf(id) });
   showcase.model.update(0, { attack: 1 });
   showcase.pop = 1;
+}
+
+function pickGender(g) {
+  setGender(g);
+  localStorage.setItem('pw.gender', g);
+  setShowcase(app.selected);
+  audio.sfx('uiMove');
+  greet(app.selected);
 }
 
 function toMenu() {
@@ -107,7 +128,7 @@ function toMenu() {
   ui.hideHud();
   showcase.root.visible = true;
   setShowcase(app.selected);
-  ui.showMenu(app.selected, { select, start: startMatch });
+  ui.showMenu(app.selected, { select, start: startMatch, gender: pickGender });
   audio.music('menu');
 }
 
@@ -120,7 +141,7 @@ function startMatch() {
   ui.showPause(false);
   app.resultShown = false;
   input.pressed.clear();
-  game.start(app.selected);
+  game.start(app.selected, app.gender);
   cam.yaw = game.player.yaw;
   cam.pitch = 0.2;
   camTarget(cam.pos);
@@ -370,4 +391,4 @@ requestAnimationFrame(frame);
 addEventListener('pointerdown', () => audio.unlock(), { once: true });
 
 // test hook for automated playtests
-window.__pw = { game, app, startMatch, toMenu, select, cam, camera, renderer };
+window.__pw = { game, app, startMatch, toMenu, select, pickGender, cam, camera, renderer };

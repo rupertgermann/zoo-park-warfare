@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SPECIES, BOSS, byId, TEAM_COLORS, RULES, DIFFICULTY } from './species.js';
+import { SPECIES, BOSS, byId, TEAM_COLORS, RULES, DIFFICULTY, gendered, voicePitch } from './species.js';
 import { L, text } from './i18n.js';
 import { buildCreature, buildProp } from './models.js';
 import { audio } from './audio.js';
@@ -38,8 +38,8 @@ export function createGame({ scene, park, fx, ui }) {
     fx.clear();
   }
 
-  function makeActor(spec, team, name, isPlayer = false) {
-    const model = buildCreature(spec.id);
+  function makeActor(spec, team, name, isPlayer = false, gender = 'm') {
+    const model = buildCreature(spec.id, gender);
     const isBoss = spec === BOSS;
     if (!isBoss) model.setTeamColor(TEAM_COLORS[team]);
     scene.add(model.root);
@@ -49,7 +49,7 @@ export function createGame({ scene, park, fx, ui }) {
     ring.scale.setScalar(isBoss ? 2.6 : spec.size * 1.25);
     scene.add(ring);
     const a = {
-      spec, team, name, isPlayer, isBoss, model, ring,
+      spec, team, name, gender, isPlayer, isBoss, model, ring,
       pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, aimYaw: 0, faceT: 0,
       hp: spec.hp, maxHp: spec.hp, alive: true, respawnT: 0,
       cdP: 0, cdS: 0, rageT: 0, stunT: 0, invulnT: 0, knockT: 0, dashT: 0, dashV: new THREE.Vector3(), dashHit: new Set(), diveT: 0,
@@ -65,7 +65,7 @@ export function createGame({ scene, park, fx, ui }) {
     return a;
   }
 
-  function start(speciesId) {
+  function start(speciesId, myGender = 'm') {
     clear();
     const mine = byId[speciesId];
     const rivals = shuffle(SPECIES.filter(s => s !== mine)).slice(0, RULES.teams - 1);
@@ -73,10 +73,11 @@ export function createGame({ scene, park, fx, ui }) {
     g.scores = g.teams.map(() => 0);
     g.spawns = shuffle(park.teamSpawns.slice()).slice(0, RULES.teams);
     g.teams.forEach((spec, team) => {
-      const names = shuffle(text(spec).names.slice());
+      const tx = text(spec), names = { m: shuffle(tx.names.slice()), f: shuffle((tx.namesF || []).slice()) }, used = { m: 0, f: 0 };
       for (let i = 0; i < RULES.perTeam; i++) {
         const isPlayer = team === 0 && i === 0;
-        const a = makeActor(spec, team, isPlayer ? 'Du' : names[i % names.length], isPlayer);
+        const gender = !gendered(spec) ? 'm' : isPlayer ? myGender : Math.random() < 0.5 ? 'f' : 'm';
+        const a = makeActor(spec, team, isPlayer ? 'Du' : names[gender][used[gender]++ % names[gender].length], isPlayer, gender);
         placeAtSpawn(a, i);
         if (isPlayer) g.player = a;
       }
@@ -248,7 +249,7 @@ export function createGame({ scene, park, fx, ui }) {
   }
 
   function voice(a, vol) {
-    audio.sfx(a.spec.voice, { x: a.pos.x, z: a.pos.z, vol, pitch: a.spec.pitch });
+    audio.sfx(a.spec.voice, { x: a.pos.x, z: a.pos.z, vol, pitch: voicePitch(a.spec, a.gender) });
   }
 
   function primary(a, aim) {
