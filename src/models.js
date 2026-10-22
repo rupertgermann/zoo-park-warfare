@@ -3,6 +3,7 @@
 // normalized to its game-scale height, and animated by one shared animator that reads only the rig.
 import * as THREE from 'three';
 import { toon } from './toon.js';
+import { L } from './i18n.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const PI = Math.PI;
@@ -856,8 +857,8 @@ const PROPS = {
     part(o, 'cyl', mat(0xd8dde4, { metal: 0.8, rough: 0.25 }), [0, 0, 0], [0.15, 0.045, 0.15]);
     part(o, 'cyl', 0xe23b3b, [0, 0.024, 0], [0.12, 0.01, 0.12]);
   },
-  quack(o) { shout(o, 'QUAK!'); },
-  honk(o) { shout(o, 'HUP!'); },
+  quack(o) { shout(o, L.quack); },
+  honk(o) { shout(o, L.honk); },
   bread(o) {
     const geo = cachedGeo('toast', () => {
       const s = new THREE.Shape();

@@ -5,7 +5,7 @@ The player picks one of twelve factions (see `src/species.js`, the single source
 Phase 1 "Revierkampf": 5 teams of 3 (player + 2 bots of the same species vs 4 rival species), first team to `RULES.koToWin` (20) KOs wins. That team is crowned (gold crown, +30 % damage against the boss).
 Phase 2 "Endgegner": a giant kingfisher (Eisvogel) attacks, always, whoever won phase 1. All survivors call a truce and fight it together; the player has 3 to 5 lives depending on difficulty.
 Difficulty (`DIFFICULTY` in `src/species.js`, picked in the menu, saved as `pw.diff`): Leicht, Mittel, Schwer. It scales rival bots and the boss only; Schwer is the tuned baseline.
-All UI text is German. Stack: Vite + three.js 0.186 (ES modules, `import * as THREE from 'three'`). No other runtime deps.
+All UI text is in German and English (`src/i18n.js`, switch on the start screen, saved as `pw.lang`). Stack: Vite + three.js 0.186 (ES modules, `import * as THREE from 'three'`). No other runtime deps.
 
 ## World conventions
 - Y up, ground at y = 0. Meters. Creatures face +Z in local space; the root origin is at the feet.

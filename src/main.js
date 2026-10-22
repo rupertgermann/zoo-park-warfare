@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { SPECIES, byId, DIFFICULTY } from './species.js';
+import { L, setLang } from './i18n.js';
 import { buildCreature } from './models.js';
 import { buildPark } from './park.js';
 import { audio } from './audio.js';
@@ -130,7 +131,7 @@ function lock() {
   if (input.locked) return setPaused(false);
   try {
     const r = canvas.requestPointerLock?.({ unadjustedMovement: true });
-    r?.catch?.(() => { if (!input.locked && !app.test) setPaused(true, 'Maus nicht eingefangen. Bitte nochmal klicken.'); });
+    r?.catch?.(() => { if (!input.locked && !app.test) setPaused(true, L.noLock); });
   } catch { setPaused(true); }
 }
 
@@ -187,6 +188,7 @@ const diffEl = ui.el('diff');
 const setDiff = id => { game.diff = DIFFICULTY.find(d => d.id === id) || DIFFICULTY[1]; diffEl.querySelector(`[value="${game.diff.id}"]`).checked = true; };
 setDiff(localStorage.getItem('pw.diff'));
 diffEl.onchange = e => { setDiff(e.target.value); localStorage.setItem('pw.diff', e.target.value); audio.sfx('uiMove'); };
+ui.el('lang').onchange = e => { setLang(e.target.value); ui.setLanguage(); audio.sfx('uiMove'); };
 
 const volEl = ui.el('vol'), sensEl = ui.el('sens');
 volEl.value = audio.getVolume();

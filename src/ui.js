@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { SPECIES, RULES, TEAM_COLORS, BOSS, DIFFICULTY } from './species.js';
+import { SPECIES, RULES, TEAM_COLORS, DIFFICULTY } from './species.js';
+import { L, LANGS, lang, text } from './i18n.js';
 
 const hex = n => '#' + n.toString(16).padStart(6, '0');
 const $ = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const KIND = { shot: 'Fernkampf', lob: 'Bogenwurf · Fläche', cone: 'Kegel · Rückstoß', melee: 'Nahkampf' };
 const RANGE = { shot: 0.9, lob: 0.75, cone: 0.4, melee: 0.22 };
 const v = new THREE.Vector3();
 const MAX_HP = Math.max(...SPECIES.map(s => s.hp));
@@ -20,48 +20,49 @@ export function createUI(root) {
 
   root.innerHTML = `
     <div class="screen menu" id="menu" hidden>
-      <header class="logo"><h1>PARK<span>WARFARE</span></h1><p>Kampf um den Stadtpark</p></header>
-      <section class="picker" aria-label="Tier wählen">
-        <h2>Wähle dein Tier</h2>
-        <div class="grid" role="listbox" aria-label="Tiere" id="grid"></div>
+      <header class="logo"><h1>ZOO PARK<span>WARFARE</span></h1><p data-t="subtitle"></p>
+        <fieldset class="seg lang" id="lang"><legend data-t="language"></legend>${Object.keys(LANGS).map(id => `
+          <label><input type="radio" name="lang" value="${id}" /><span>${id.toUpperCase()}</span></label>`).join('')}
+        </fieldset>
+      </header>
+      <section class="picker" data-ta="pickAria">
+        <h2 data-t="pick"></h2>
+        <div class="grid" role="listbox" data-ta="animals" id="grid"></div>
       </section>
       <section class="detail" id="detail" aria-live="polite"></section>
       <footer class="menu-foot">
-        <div class="keys" aria-label="Steuerung">
-          <span><kbd>WASD</kbd> laufen</span><span><kbd>Maus</kbd> zielen</span><span><kbd>Klick</kbd> Angriff</span>
-          <span><kbd>Rechtsklick</kbd>/<kbd>E</kbd> Spezial</span><span><kbd>Leertaste</kbd> springen/flattern</span><span><kbd>Esc</kbd> Pause</span>
-        </div>
-        <fieldset class="diff" id="diff"><legend>Schwierigkeit</legend>${DIFFICULTY.map(d => `
-          <label title="${d.desc}"><input type="radio" name="diff" value="${d.id}" /><span>${d.name}</span></label>`).join('')}
+        <div class="keys" data-ta="controls" data-t="keysMenu"></div>
+        <fieldset class="seg diff" id="diff"><legend data-t="difficulty"></legend>${DIFFICULTY.map(d => `
+          <label><input type="radio" name="diff" value="${d.id}" /><span></span></label>`).join('')}
         </fieldset>
-        <button class="go" id="go">LOS GEHT'S <small>Enter</small></button>
+        <button class="go" id="go" data-t="go"></button>
       </footer>
-      <p class="drag-hint">Ziehen zum Drehen</p>
+      <p class="drag-hint" data-t="drag"></p>
     </div>
 
     <div class="hud" id="hud" hidden>
       <div class="scores" id="scores"></div>
       <div class="bossbar" id="bossbar" hidden>
-        <div class="bossname">${BOSS.name}</div>
+        <div class="bossname" id="bossname"></div>
         <div class="bar"><i id="bosshp"></i></div>
-        <div class="lives" id="lives" title="Deine Leben im Bossfight" aria-label="Deine Leben"></div>
+        <div class="lives" id="lives" data-tt="livesTitle" data-ta="livesAria"></div>
       </div>
       <div class="feed" id="feed" aria-live="polite"></div>
       <div class="crosshair" id="cross"><i></i><i></i><i></i><i></i></div>
       <div class="hurtdir" id="hurtdir"></div>
       <div class="plates" id="plates"></div>
-      <div class="bossarrow" id="bossarrow" hidden aria-hidden="true">▲<span>Eisvogel</span></div>
+      <div class="bossarrow" id="bossarrow" hidden aria-hidden="true">▲<span data-t="bossShort"></span></div>
       <div class="me">
         <img id="meimg" alt="" />
         <div class="mebox">
           <div class="mename" id="mename"></div>
-          <div class="crownchip" id="crownchip" hidden>👑 Revierchef: +30 % Schaden am Eisvogel</div>
+          <div class="crownchip" id="crownchip" hidden data-t="crownChip"></div>
           <div class="hp"><i id="mehp"></i><span id="mehptext"></span></div>
         </div>
       </div>
       <div class="abilities">
-        <div class="ab" id="abP"><b>Klick</b><span></span><i class="cd"></i></div>
-        <div class="ab" id="abS"><b>Rechtsklick / E</b><span></span><i class="cd"></i></div>
+        <div class="ab" id="abP"><b data-t="click"></b><span></span><i class="cd"></i></div>
+        <div class="ab" id="abS"><b data-t="rightClickE"></b><span></span><i class="cd"></i></div>
       </div>
       <div class="toast" id="toast" role="status"></div>
       <div class="banner" id="banner"><h2></h2><p></p></div>
@@ -71,16 +72,13 @@ export function createUI(root) {
 
     <div class="screen overlay" id="pause" hidden role="dialog" aria-modal="true" aria-labelledby="pausetitle">
       <div class="card">
-        <h2 id="pausetitle">Pause</h2>
+        <h2 id="pausetitle" data-t="pause"></h2>
         <p id="pausenote" class="note"></p>
-        <button class="go" id="resume">Weiter <small>Klick</small></button>
-        <label>Lautstärke <input type="range" id="vol" min="0" max="1" step="0.05" /></label>
-        <label>Maus-Empfindlichkeit <input type="range" id="sens" min="0.3" max="2.5" step="0.05" /></label>
-        <div class="keys small">
-          <span><kbd>WASD</kbd> laufen</span><span><kbd>Klick</kbd> Angriff</span><span><kbd>Rechtsklick</kbd>/<kbd>E</kbd> Spezial</span>
-          <span><kbd>Leertaste</kbd> springen</span><span><kbd>M</kbd> Ton aus/an</span>
-        </div>
-        <button class="ghost" id="quit">Zurück zur Tierauswahl</button>
+        <button class="go" id="resume" data-t="resume"></button>
+        <label><span data-t="volume"></span> <input type="range" id="vol" min="0" max="1" step="0.05" /></label>
+        <label><span data-t="sens"></span> <input type="range" id="sens" min="0.3" max="2.5" step="0.05" /></label>
+        <div class="keys small" data-t="keysPause"></div>
+        <button class="ghost" id="quit" data-t="quit"></button>
       </div>
     </div>
 
@@ -88,16 +86,32 @@ export function createUI(root) {
       <div class="card">
         <h2 id="restitle"></h2>
         <p id="resreason"></p>
-        <p class="caption">Endstand Revierkampf</p>
+        <p class="caption" data-t="standings"></p>
         <div class="standings" id="resstandings"></div>
         <div class="stats" id="resstats"></div>
-        <button class="go" id="again">Nochmal <small>Enter</small></button>
-        <button class="ghost" id="change">Anderes Tier</button>
+        <button class="go" id="again" data-t="again"></button>
+        <button class="ghost" id="change" data-t="change"></button>
       </div>
     </div>
-    <button class="mute" id="mute" aria-label="Ton aus"></button>
+    <button class="mute" id="mute"></button>
   `;
   const el = id => root.querySelector('#' + id);
+  // static labels; rerun on language change
+  let muted = false;
+  function relabel() {
+    for (const e of root.querySelectorAll('[data-t]')) e.innerHTML = L[e.dataset.t];
+    for (const e of root.querySelectorAll('[data-ta]')) e.setAttribute('aria-label', L[e.dataset.ta]);
+    for (const e of root.querySelectorAll('[data-tt]')) e.title = L[e.dataset.tt];
+    for (const e of el('diff').querySelectorAll('label')) {
+      const [name, desc] = L.diff[e.querySelector('input').value];
+      e.title = desc; e.querySelector('span').textContent = name;
+    }
+    el('lang').querySelector(`[value="${lang}"]`).checked = true;
+    el('bossname').textContent = L.species.eisvogel.name;
+    el('bossname').dataset.stunned = L.stunned;
+    document.title = `${L.title} – ${L.subtitle}`;
+    setMuted(muted);
+  }
   // keep Tab inside whichever dialog is open
   addEventListener('keydown', e => {
     if (e.key !== 'Tab') return;
@@ -114,8 +128,8 @@ export function createUI(root) {
   let menuCb = null, selected = null;
   function buildGrid() {
     el('grid').innerHTML = SPECIES.map((s, i) => `
-      <button class="card-sp" role="option" data-id="${s.id}" style="--c:${hex(s.color)};--a:${hex(s.accent)}" aria-label="${esc(s.name)}">
-        <img src="${portraits[s.id] || ''}" alt="" /><span>${esc(s.name)}</span>
+      <button class="card-sp" role="option" data-id="${s.id}" style="--c:${hex(s.color)};--a:${hex(s.accent)}" aria-label="${esc(text(s).name)}">
+        <img src="${portraits[s.id] || ''}" alt="" /><span>${esc(text(s).name)}</span>
       </button>`).join('');
     el('grid').onclick = e => {
       const b = e.target.closest('[data-id]');
@@ -123,16 +137,16 @@ export function createUI(root) {
     };
   }
   function renderDetail(s) {
-    const dps = s.primary.dmg / s.primary.rate;
-    const bars = [['Leben', s.hp / MAX_HP], ['Tempo', s.speed / MAX_SPEED], ['Schaden', dps / MAX_DPS], ['Reichweite', RANGE[s.primary.kind]]];
+    const dps = s.primary.dmg / s.primary.rate, tx = text(s);
+    const bars = [s.hp / MAX_HP, s.speed / MAX_SPEED, dps / MAX_DPS, RANGE[s.primary.kind]];
     el('detail').innerHTML = `
-      <p class="faction">${esc(s.team)}</p>
-      <h2>${esc(s.name)}</h2>
-      <p class="tag">${esc(s.tagline)}</p>
-      <div class="bars">${bars.map(([n, x]) => `<div><span>${n}</span><i><b style="width:${Math.round(x * 100)}%"></b></i></div>`).join('')}</div>
-      <div class="abil"><kbd>Klick</kbd><div><b>${esc(s.primary.name)}</b><small>${KIND[s.primary.kind]} · ${s.primary.dmg}&nbsp;Schaden</small></div></div>
-      <div class="abil"><kbd>Rechtsklick</kbd><div><b>${esc(s.special.name)}</b><small>${esc(s.special.desc)} Abklingzeit ${s.special.cd}&nbsp;s.</small></div></div>
-      <div class="traits">${s.flies ? '<span>🪶 Flattert</span>' : ''}${s.swims ? '<span>💧 Schwimmt flott</span>' : '<span>🥾 Im Teich langsam</span>'}</div>`;
+      <p class="faction">${esc(tx.team)}</p>
+      <h2>${esc(tx.name)}</h2>
+      <p class="tag">${esc(tx.tagline)}</p>
+      <div class="bars">${bars.map((x, i) => `<div><span>${L.bars[i]}</span><i><b style="width:${Math.round(x * 100)}%"></b></i></div>`).join('')}</div>
+      <div class="abil"><kbd>${L.click}</kbd><div><b>${esc(tx.primary)}</b><small>${L.kind[s.primary.kind]} · ${L.dmg(s.primary.dmg)}</small></div></div>
+      <div class="abil"><kbd>${L.rightClick}</kbd><div><b>${esc(tx.special)}</b><small>${esc(tx.desc)} ${L.cooldown(s.special.cd)}</small></div></div>
+      <div class="traits">${s.flies ? `<span>${L.flies}</span>` : ''}<span>${s.swims ? L.swims : L.wades}</span></div>`;
   }
   function showMenu(id, cb) {
     menuCb = cb;
@@ -148,6 +162,8 @@ export function createUI(root) {
     renderDetail(SPECIES.find(s => s.id === id));
   }
   el('go').onclick = () => menuCb?.start();
+  // the menu is the only screen where the language can change, so it is the only one rebuilt live
+  function setLanguage() { relabel(); buildGrid(); if (selected) setSelected(selected); }
 
   // ---------- match ----------
   function bind(g) { game = g; }
@@ -163,12 +179,12 @@ export function createUI(root) {
     plates.clear();
     const s = game.player.spec;
     el('meimg').src = portraits[s.id] || '';
-    el('mename').textContent = `${s.name} · ${s.team}`;
-    el('abP').querySelector('span').textContent = s.primary.name;
-    el('abS').querySelector('span').textContent = s.special.name;
+    el('mename').textContent = `${text(s).name} · ${text(s).team}`;
+    el('abP').querySelector('span').textContent = text(s).primary;
+    el('abS').querySelector('span').textContent = text(s).special;
     for (const a of game.actors) {
       if (a.isPlayer) continue;
-      const root = $(`<div class="plate ${a.team === 0 ? 'ally' : ''}" style="--t:${hex(TEAM_COLORS[a.team])}"><em>${esc(a.spec.special.name)}!</em><span>${esc(a.name)}</span><i><b></b></i></div>`);
+      const root = $(`<div class="plate ${a.team === 0 ? 'ally' : ''}" style="--t:${hex(TEAM_COLORS[a.team])}"><em>${esc(text(a.spec).special)}!</em><span>${esc(a.name)}</span><i><b></b></i></div>`);
       el('plates').append(root);
       plates.set(a, { root, bar: root.querySelector('b'), castT: 0 });
     }
@@ -178,9 +194,9 @@ export function createUI(root) {
   function scores() {
     const lead = Math.max(...game.scores);
     const unique = game.scores.filter(x => x === lead).length === 1;
-    el('scores').innerHTML = `<div class="goal">Ziel: ${RULES.koToWin} K.O.s</div>` + game.teams.map((s, i) => `
-      <div class="sc ${i === 0 ? 'mine' : ''} ${unique && game.scores[i] === lead && lead > 0 ? 'lead' : ''}" style="--t:${hex(TEAM_COLORS[i])}" title="${esc(s.team)}">
-        <img src="${portraits[s.id] || ''}" alt="${esc(s.name)}" /><b>${game.scores[i]}</b><i style="width:${game.scores[i] / RULES.koToWin * 100}%"></i>
+    el('scores').innerHTML = `<div class="goal">${L.goal(RULES.koToWin)}</div>` + game.teams.map((s, i) => `
+      <div class="sc ${i === 0 ? 'mine' : ''} ${unique && game.scores[i] === lead && lead > 0 ? 'lead' : ''}" style="--t:${hex(TEAM_COLORS[i])}" title="${esc(text(s).team)}">
+        <img src="${portraits[s.id] || ''}" alt="${esc(text(s).name)}" /><b>${game.scores[i]}</b><i style="width:${game.scores[i] / RULES.koToWin * 100}%"></i>
       </div>`).join('');
   }
 
@@ -201,15 +217,15 @@ export function createUI(root) {
   }
 
   function phase(p) {
-    if (p === 'match') banner('LOS!', `Das erste Team mit ${RULES.koToWin} K.O.s regiert den Park`, 1.4, 'count');
+    if (p === 'match') banner(L.goBanner, L.goSub(RULES.koToWin), 1.4, 'count');
     const mine = game.crown === game.player?.team;
-    if (p === 'won') mine ? banner('REVIER EROBERT!', 'Moment mal … was blitzt da über dem Teich?', 3, 'gold')
-      : banner(`${game.teams[game.crown].name.toUpperCase()} GEWINNT`, `${game.teams[game.crown].team} holt sich den Park. Doch dann blitzt etwas über dem Teich …`, 3, 'gold');
-    if (p === 'bossIntro') { banner('DER EISVOGEL', mine ? 'Waffenstillstand! Als Revierchef machst du 30 % mehr Schaden.' : 'Waffenstillstand! Alle gegen den blauen Blitz.', 4.2, 'boss'); el('scores').hidden = true; }
+    const champ = game.teams[game.crown] && text(game.teams[game.crown]);
+    if (p === 'won') mine ? banner(L.conquered, L.conqueredSub, 3, 'gold') : banner(L.teamWins(champ.name.toUpperCase()), L.teamWinsSub(champ.team), 3, 'gold');
+    if (p === 'bossIntro') { banner(L.bossBanner, mine ? L.truceCrown : L.truce, 4.2, 'boss'); el('scores').hidden = true; }
     if (p === 'boss') { el('bossbar').hidden = false; lives(game.lives); el('crownchip').hidden = !mine; }
     if (p === 'over') {
       el('dead').hidden = true;
-      game.result.won ? banner('EISVOGEL BESIEGT!', 'Der Park gehört wieder den Parkbewohnern.', 3.4, 'boss') : banner('AUS DIE MAUS!', game.result.reason, 2.4, 'lose');
+      game.result.won ? banner(L.bossDown, L.bossDownSub, 3.4, 'boss') : banner(L.gameOver, game.result.reason, 2.4, 'lose');
     }
     hud.classList.toggle('cinematic', p === 'bossIntro' || p === 'over');
   }
@@ -224,21 +240,19 @@ export function createUI(root) {
   }
 
   function killfeed(src, t) {
-    const verb = src.spec.verb;
+    const verb = text(src.spec).verb;
     const mine = a => a.isPlayer || a.isBoss || (game.phase !== 'boss' && a.team === game.player.team);
     if (!mine(src) && !mine(t)) return;
-    const who = (a, obj) => `<b style="color:${a.isBoss ? '#4fc3ff' : hex(TEAM_COLORS[a.team])}">${esc(a.isPlayer ? (obj ? 'dich' : 'Du') : a.isBoss ? (obj ? 'den Eisvogel' : 'Der Eisvogel') : a.name)}</b>`;
-    const text = src === t ? (t.isPlayer ? 'Du hast dich selbst erledigt' : `${who(t)} hat sich selbst erledigt`) :
-      src.isBoss ? `${who(src)} spießt ${who(t, true)} auf` :
-      `${who(src)} ${src.isPlayer ? verbDu(verb[0]) : verb[0]} ${who(t, true)} ${verb[1]}`;
-    const row = $(`<div class="kill ${src.isPlayer || t.isPlayer ? 'mine' : ''}">${text}</div>`);
+    const who = (a, obj) => `<b style="color:${a.isBoss ? '#4fc3ff' : hex(TEAM_COLORS[a.team])}">${esc(a.isPlayer ? (obj ? L.youObj : L.you) : a.isBoss ? (obj ? L.bossObj : L.boss) : a.name)}</b>`;
+    const line = src === t ? (t.isPlayer ? L.selfKo : L.selfKoOther(who(t))) :
+      src.isBoss ? L.bossKill(who(src), who(t, true)) :
+      `${who(src)} ${verb[src.isPlayer ? 1 : 0]} ${who(t, true)} ${verb[2]}`;
+    const row = $(`<div class="kill ${src.isPlayer || t.isPlayer ? 'mine' : ''}">${line}</div>`);
     el('feed').prepend(row);
     setTimeout(() => row.classList.add('out'), 4000);
     setTimeout(() => row.remove(), 4600);
     while (el('feed').children.length > 5) el('feed').lastChild.remove();
   }
-  // "hupt" -> "hupst", "nagt" -> "nagst", "beklaut" -> "beklaust", "faucht" -> "fauchst"
-  const verbDu = w => w.endsWith('st') ? w : w.endsWith('t') ? w.slice(0, -1) + 'st' : w;
 
   function hitmarker(t, amount, isKo) {
     const c = el('cross');
@@ -272,8 +286,8 @@ export function createUI(root) {
     deadT = t;
     const d = el('dead');
     d.hidden = false;
-    const by = !src || src === game.player ? '' : src.isBoss ? 'Erwischt vom <b>Eisvogel</b>' : `Erwischt von <b>${esc(src.name)}</b> (${esc(src.spec.name)})`;
-    const left = game.phase === 'boss' ? `<br>Noch ${game.lives} Leben übrig` : '';
+    const by = !src || src === game.player ? '' : src.isBoss ? L.caughtBoss : L.caughtBy(esc(src.name), esc(text(src.spec).name));
+    const left = game.phase === 'boss' ? `<br>${L.livesLeft(game.lives)}` : '';
     d.querySelector('p').innerHTML = by + left;
   }
   function respawned() { el('dead').hidden = true; }
@@ -281,13 +295,13 @@ export function createUI(root) {
   function showResult(cb) {
     el('result').hidden = false;
     const r = game.result, s = game.player.spec;
-    el('restitle').textContent = r.won ? 'SIEG!' : 'NIEDERLAGE';
+    el('restitle').textContent = r.won ? L.win : L.lose;
     el('restitle').className = r.won ? 'win' : 'lose';
-    el('resreason').textContent = !r.won ? r.reason : r.crown ? `${s.team} regiert jetzt den Stadtpark. Der Eisvogel ist Geschichte.` : 'Das Revier ist futsch, aber der Eisvogel ist besiegt. Ehrenrunde!';
-    el('resstats').innerHTML = [['K.O.s verteilt', r.stats.ko], ['K.O.s kassiert', r.stats.deaths], ['Schaden', r.stats.dmg]]
-      .map(([k, n]) => `<div><b>${n}</b><span>${k}</span></div>`).join('');
+    el('resreason').textContent = !r.won ? r.reason : r.crown ? L.winCrown(text(s).team) : L.winNoCrown;
+    el('resstats').innerHTML = [r.stats.ko, r.stats.deaths, r.stats.dmg]
+      .map((n, i) => `<div><b>${n}</b><span>${L.stats[i]}</span></div>`).join('');
     el('resstandings').innerHTML = game.teams.map((s, i) => [s, i]).sort((a, b) => game.scores[b[1]] - game.scores[a[1]]).map(([s, i]) => `
-      <div class="sc ${i === 0 ? 'mine' : ''}" style="--t:${hex(TEAM_COLORS[i])}" title="${esc(s.team)}"><img src="${portraits[s.id] || ''}" alt="${esc(s.name)}" /><b>${game.scores[i]}</b></div>`).join('');
+      <div class="sc ${i === 0 ? 'mine' : ''}" style="--t:${hex(TEAM_COLORS[i])}" title="${esc(text(s).team)}"><img src="${portraits[s.id] || ''}" alt="${esc(text(s).name)}" /><b>${game.scores[i]}</b></div>`).join('');
     el('again').onclick = cb.again;
     el('change').onclick = cb.change;
     el('again').disabled = el('change').disabled = true;
@@ -317,7 +331,7 @@ export function createUI(root) {
     el('mehptext').textContent = `${Math.ceil(p.hp)} / ${p.maxHp}`;
     cd(el('abP'), p.cdP / p.spec.primary.rate);
     cd(el('abS'), p.cdS / p.spec.special.cd, Math.ceil(p.cdS));
-    if (deadT > 0) { deadT -= dt; el('dead').querySelector('.count').textContent = deadT > 0 ? `Zurück in ${Math.ceil(deadT)} …` : ''; }
+    if (deadT > 0) { deadT -= dt; el('dead').querySelector('.count').textContent = deadT > 0 ? L.backIn(Math.ceil(deadT)) : ''; }
     if (game.boss) el('bosshp').style.width = (game.boss.hp / game.boss.maxHp * 100) + '%';
     bossArrow(camera);
 
@@ -379,13 +393,15 @@ export function createUI(root) {
   }
 
   function setMuted(m, announce = false) {
-    if (announce && !hud.hidden) toast(m ? 'Ton aus (M)' : 'Ton an (M)');
+    muted = m;
+    if (announce && !hud.hidden) toast(m ? L.mutedToast : L.unmutedToast);
     el('mute').textContent = m ? '🔇' : '🔊';
-    el('mute').setAttribute('aria-label', m ? 'Ton an' : 'Ton aus');
+    el('mute').setAttribute('aria-label', m ? L.unmute : L.mute);
   }
 
+  relabel();
   return {
-    el, portraits, bind, bossStunned, cast, buildGrid, showMenu, setSelected, matchStart, scores, phase, lives, killfeed, hitmarker, hurt, died, respawned,
+    el, portraits, bind, bossStunned, cast, buildGrid, setLanguage, showMenu, setSelected, matchStart, scores, phase, lives, killfeed, hitmarker, hurt, died, respawned,
     toast, banner, showResult, showPause, update, setMuted,
     hideHud() { hud.hidden = true; },
   };
