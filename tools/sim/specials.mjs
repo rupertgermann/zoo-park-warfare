@@ -21,9 +21,9 @@ for (const sp of ALL) {
   const before = await p.evaluate(() => ({ qhp: __Q.hp, php: __pw.game.player.hp, px: __pw.game.player.pos.x }));
   await p.keyboard.down('KeyE'); await p.waitForTimeout(90); await p.keyboard.up('KeyE');
   await p.waitForTimeout(30);
-  await p.screenshot({ path: `/Users/rupertgermann/AI/games/zoo-park-wars/.audit/shots/combat/special-${sp}-a.png` });
+  await p.screenshot({ path: `.audit/shots/combat/special-${sp}-a.png` });
   await p.waitForTimeout(350);
-  await p.screenshot({ path: `/Users/rupertgermann/AI/games/zoo-park-wars/.audit/shots/combat/special-${sp}-b.png` });
+  await p.screenshot({ path: `.audit/shots/combat/special-${sp}-b.png` });
   await p.waitForTimeout(2500);
   const after = await p.evaluate(() => ({ qhp: __Q.hp, php: __pw.game.player.hp, px: __pw.game.player.pos.x, cdS: __pw.game.player.cdS, qstun: __Q.stunT, qvel: Math.hypot(__Q.vel.x, __Q.vel.z), qpos: __Q.pos.x }));
   console.log(sp, info.kind, `vs ${info.enemy} @${info.d}m: enemy dmg ${before.qhp - after.qhp}, self hp ${before.php}->${after.php}, moved ${(after.px - before.px).toFixed(1)}m, cd left ${after.cdS.toFixed(1)}`, errs.length ? errs : '');

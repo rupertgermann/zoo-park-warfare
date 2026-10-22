@@ -73,6 +73,10 @@ Alle Werkzeuge brauchen den laufenden Dev-Server und steuern das echte Spiel in 
 
 `docs/brief.md` beschreibt die Schnittstellen der Module. `src/species.js` enthält die Werte aller Fraktionen, `src/i18n.js` alle Texte in beiden Sprachen.
 
+## Lizenz
+
+Quellcode und Screenshots des Spiels stehen unter der [MIT-Lizenz](LICENSE). three.js behält seinen eigenen MIT-Copyright-Hinweis, siehe [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Die Einzeldatei-Version enthält beide Lizenztexte.
+
 ## Credits
 
-Zoo Park Warfare ist von [Karen Warfare](https://karenwarfare.fun/) inspiriert. Gebaut mit [three.js](https://threejs.org/) und [Vite](https://vite.dev/).
+Zoo Park Warfare ist von [Karen Warfare](https://karenwarfare.fun/) inspiriert. Gebaut mit [three.js](https://threejs.org/) und [Vite](https://vite.dev/). Die Lizenz von three.js, das im gebauten Spiel enthalten ist, steht in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

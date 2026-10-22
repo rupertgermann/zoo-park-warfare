@@ -1,10 +1,12 @@
 // Screenshot the model gallery: node tools/models-shot.js [shot ...]
 // shot = name:querystring, e.g. "move:anim=move". Writes .audit/shots/models-<name>.png, prints stats + console errors.
-import { chromium } from '/Users/rupertgermann/.npm/_npx/0b9ff77863cb6e9f/node_modules/playwright/index.mjs';
+import { chromium } from 'playwright-core';
+import { homedir } from 'node:os';
 
 const base = process.env.BASE || 'http://localhost:5201/tools/models.html';
 const shots = process.argv.slice(2).map(s => s.split(/:(.*)/s));
-const browser = await chromium.launch({ args: ['--use-angle=metal', '--enable-gpu'] });
+const exe = process.env.CHROME || `${homedir()}/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`;
+const browser = await chromium.launch({ executablePath: exe, args: ['--use-angle=metal', '--enable-gpu'] });
 const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
 const errors = [];
 page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`${m.type()}: ${m.text()}`); });

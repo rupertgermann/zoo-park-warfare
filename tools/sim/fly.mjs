@@ -25,7 +25,7 @@ while (Date.now() - t0 < SECS * 1000) {
   vx += -s.dyaw / 0.0024 * 0.35; vy += s.dpitch / 0.0022 * 0.35; await p.mouse.move(vx, vy);
   if (!fire) { fire = true; await p.mouse.down(); }
   if (n++ % 10 === 0) { await p.keyboard.down('Space'); await p.waitForTimeout(70); await p.keyboard.up('Space'); }
-  if (!shot && Date.now() - t0 > 6000) { shot = true; await p.screenshot({ path: `/Users/rupertgermann/AI/games/zoo-park-wars/.audit/shots/combat/fly-${sp}-vs-${en}.png` }); }
+  if (!shot && Date.now() - t0 > 6000) { shot = true; await p.screenshot({ path: `.audit/shots/combat/fly-${sp}-vs-${en}.png` }); }
 }
 await p.mouse.up();
 console.log(await p.evaluate(() => { const ys = __ys, P = __pw.game.player; return { maxY: Math.max(...ys).toFixed(1), meanY: (ys.reduce((a, b) => a + b, 0) / ys.length).toFixed(1), fracAbove3: (ys.filter(y => y > 3).length / ys.length).toFixed(2), playerHp: P.hp + '/' + P.maxHp, alive: P.alive, enemyHp: __Q.hp + '/' + __Q.maxHp, enemyDeaths: __Q.stats.deaths, killer: __Q.lastHitBy?.name, killerSpec: __Q.lastHitBy?.spec.id, feed: document.getElementById('feed')?.innerText, playerDmgDealt: P.stats.dmg }; }), errs);
