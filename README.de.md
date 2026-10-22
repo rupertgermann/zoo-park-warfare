@@ -4,7 +4,7 @@
 
 Zoo Park Warfare ist eine laute, bunte Keilerei für den Browser, gebaut mit three.js. Zwölf Fraktionen aus Stadtpark-Tieren kämpfen um die Vorherrschaft im Park. Das Siegerteam wird gekrönt, und danach müssen alle zusammen gegen den Endgegner antreten: einen riesigen Eisvogel.
 
-**[Zoo Park Warfare im Browser spielen](https://rupertgermann.github.io/zoo-park-wars/)**. Keine Installation nötig.
+**[Zoo Park Warfare im Browser spielen](https://rupertgermann.github.io/zoo-park-warfare/)**. Keine Installation nötig.
 
 Das Spiel ist von [Karen Warfare](https://karenwarfare.fun/) inspiriert.
 

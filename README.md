@@ -4,7 +4,7 @@
 
 Zoo Park Warfare is a loud, colorful browser brawler built with three.js. Twelve factions of city-park animals fight over the park. The winning team gets a crown, and then everyone has to team up against the final boss, a giant kingfisher.
 
-**[Play Zoo Park Warfare in your browser](https://rupertgermann.github.io/zoo-park-wars/)**. No installation required.
+**[Play Zoo Park Warfare in your browser](https://rupertgermann.github.io/zoo-park-warfare/)**. No installation required.
 
 The game is inspired by [Karen Warfare](https://karenwarfare.fun/).
 
