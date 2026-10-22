@@ -114,4 +114,12 @@ export const byId = Object.fromEntries([...SPECIES, BOSS].map(s => [s.id, s]));
 // Rival-team tints so you can tell teams apart even when two species look alike.
 export const TEAM_COLORS = [0xffd23f, 0xff4f79, 0x3ddc97, 0x4fb3ff, 0xb77bff];
 
-export const RULES = { teams: 5, perTeam: 3, koToWin: 20, respawn: 3, bossLives: 3 };
+export const RULES = { teams: 5, perTeam: 3, koToWin: 20, respawn: 3 };
+
+// Multipliers for rival bots and the boss; 'schwer' is the tuned baseline.
+// speed: bot movement, boss: boss flight speed, rate: attack cooldown, aim: aim error, dmg: damage taken by the player.
+export const DIFFICULTY = [
+  { id: 'leicht', name: 'Leicht', desc: 'Gemütlicher Spaziergang', speed: 0.72, boss: 0.85, rate: 1.7, aim: 2, dmg: 0.45, lives: 5 },
+  { id: 'mittel', name: 'Mittel', desc: 'Ein fairer Kampf', speed: 0.86, boss: 0.93, rate: 1.3, aim: 1.4, dmg: 0.7, lives: 4 },
+  { id: 'schwer', name: 'Schwer', desc: 'Der Park kennt keine Gnade', speed: 1, boss: 1, rate: 1, aim: 1, dmg: 1, lives: 3 },
+];

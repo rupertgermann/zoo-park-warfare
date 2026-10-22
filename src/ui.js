@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SPECIES, RULES, TEAM_COLORS, BOSS } from './species.js';
+import { SPECIES, RULES, TEAM_COLORS, BOSS, DIFFICULTY } from './species.js';
 
 const hex = n => '#' + n.toString(16).padStart(6, '0');
 const $ = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
@@ -31,6 +31,9 @@ export function createUI(root) {
           <span><kbd>WASD</kbd> laufen</span><span><kbd>Maus</kbd> zielen</span><span><kbd>Klick</kbd> Angriff</span>
           <span><kbd>Rechtsklick</kbd>/<kbd>E</kbd> Spezial</span><span><kbd>Leertaste</kbd> springen/flattern</span><span><kbd>Esc</kbd> Pause</span>
         </div>
+        <fieldset class="diff" id="diff"><legend>Schwierigkeit</legend>${DIFFICULTY.map(d => `
+          <label title="${d.desc}"><input type="radio" name="diff" value="${d.id}" /><span>${d.name}</span></label>`).join('')}
+        </fieldset>
         <button class="go" id="go">LOS GEHT'S <small>Enter</small></button>
       </footer>
       <p class="drag-hint">Ziehen zum Drehen</p>
@@ -217,7 +220,7 @@ export function createUI(root) {
   function bossStunned(on) { el('bossbar').classList.toggle('stunned', on); }
 
   function lives(n) {
-    el('lives').innerHTML = Array.from({ length: RULES.bossLives }, (_, i) => `<span class="${i < n ? '' : 'lost'}">♥</span>`).join('');
+    el('lives').innerHTML = Array.from({ length: game.diff.lives }, (_, i) => `<span class="${i < n ? '' : 'lost'}">♥</span>`).join('');
   }
 
   function killfeed(src, t) {

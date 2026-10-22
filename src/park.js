@@ -3,6 +3,7 @@
 // Colliders: {x,z,r,h} circles or {x,z,hx,hz,h} axis-aligned boxes (hx/hz are HALF extents).
 // The layout is seeded: rng() call order below decides where trees and bushes land, so do not reorder the build steps.
 import * as THREE from 'three';
+import { toon } from './toon.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { mulberry32, grassTexture, waterTexture, signAtlas, signUV, windowTexture, SIGN } from './park-textures.js';
 
@@ -325,7 +326,7 @@ function signPost(x, z, cellIdx, w, h, faceX, faceZ, o = {}) {
 // sky, sun, hemisphere light, fog
 function addSky(scene, root) {
   scene.background = new THREE.Color(0xcfe9fb);
-  scene.fog = new THREE.Fog(0xd3ebfb, 120, 300);
+  scene.fog = new THREE.Fog(0xd3ebfb, 75, 280);
 
   const skyGeo = new THREE.SphereGeometry(280, 24, 14);
   {
@@ -350,7 +351,7 @@ function addSky(scene, root) {
   sc.left = -72; sc.right = 72; sc.top = 72; sc.bottom = -72; sc.near = 10; sc.far = 220;
   sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.06;
   root.add(sun, sun.target);
-  root.add(new THREE.HemisphereLight(0xbfe4ff, 0x9acb78, 1.25));
+  root.add(new THREE.HemisphereLight(0xbfe4ff, 0x9acb78, 0.9));
   {
     const d = sun.position.clone().normalize().multiplyScalar(250);
     const disc = new THREE.Mesh(new THREE.CircleGeometry(16, 24), new THREE.MeshBasicMaterial({ color: 0xfff7cf, fog: false, depthWrite: false }));
@@ -393,7 +394,7 @@ function addGround(root) {
   shape.holes.push(hole);
   const g = new THREE.ShapeGeometry(shape);
   g.rotateX(-Math.PI / 2);
-  const ground = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ map: grassTexture() }));
+  const ground = new THREE.Mesh(g, toon({ map: grassTexture() }));
   ground.receiveShadow = true;
   root.add(ground);
 }
@@ -764,23 +765,51 @@ function addSkyline() {
 
 // merge everything collected so far into a few meshes
 function finalizeMeshes(root, skyGeos) {
-  const staticMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide });
+  const staticMat = toon({ vertexColors: true, side: THREE.DoubleSide });
   const staticMesh = new THREE.Mesh(mergeGeometries(statics), staticMat);
   staticMesh.castShadow = staticMesh.receiveShadow = true;
   root.add(staticMesh);
   const glowMesh = new THREE.Mesh(mergeGeometries(glows), new THREE.MeshBasicMaterial({ vertexColors: true }));
   root.add(glowMesh);
   root.add(new THREE.Mesh(mergeGeometries(signGeos), new THREE.MeshBasicMaterial({ map: signAtlas(), side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 })));
-  root.add(new THREE.Mesh(mergeGeometries(skyGeos), new THREE.MeshLambertMaterial({ map: windowTexture(), vertexColors: true, flatShading: true })));
+  root.add(new THREE.Mesh(mergeGeometries(skyGeos), toon({ map: windowTexture(), vertexColors: true })));
 }
 
-// pond surface, foam ring, fountain water and jets; returns the per-frame updater
+// Cartoon pond: deep-to-shallow tint from the ring index, drifting ripple streaks and a frothy shore band.
+const pondTime = { value: 0 };
+function pondMaterial() {
+  // writes depth so the outline pass inks the waterline instead of the pond bed's creases below
+  const m = toon({ color: 0xffffff, transparent: true, opacity: 0.9 });
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uTime = pondTime;
+    sh.vertexShader = 'attribute float edge;\nvarying float vEdge;\nvarying vec3 vW;\n' + sh.vertexShader
+      .replace('#include <project_vertex>', '#include <project_vertex>\n  vEdge = edge;\n  vW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = 'uniform float uTime;\nvarying float vEdge;\nvarying vec3 vW;\n' + sh.fragmentShader
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        float shallow = smoothstep(0.62, 1.0, vEdge);
+        diffuseColor.rgb = mix(vec3(0.01, 0.2, 0.58), vec3(0.1, 0.55, 0.78), shallow);
+        float r = sin(vW.x * 1.1 + uTime * 0.9 + sin(vW.z * 0.8 + uTime * 0.6) * 1.6)
+                * sin(vW.z * 1.3 - uTime * 0.7 + sin(vW.x * 0.6 - uTime * 0.4) * 1.6);
+        float streak = smoothstep(0.86, 0.9, r) * (1.0 - shallow * 0.7);
+        float a = atan(vW.z, vW.x);
+        float wob = sin(a * 23.0 + uTime * 1.8) * 0.018 + sin(a * 9.0 - uTime * 1.1) * 0.02;
+        float foam = smoothstep(0.935 + wob, 0.95 + wob, vEdge);
+        float lace = smoothstep(0.86 + wob, 0.875 + wob, vEdge) * (1.0 - smoothstep(0.895 + wob, 0.91 + wob, vEdge));
+        float white = max(max(streak * 0.55, foam), lace * 0.7);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), white);
+        diffuseColor.a = mix(diffuseColor.a, 1.0, white);`)
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * 0.12;');
+  };
+  return m;
+}
+
+// pond surface, fountain water and jets; returns the per-frame updater
 function addWater(root) {
   const waterTex = waterTexture();
   const waterMat = new THREE.MeshPhongMaterial({ color: 0x2db4ee, map: waterTex, shininess: 110, specular: 0xbfe6ff, transparent: true, opacity: 0.88, depthWrite: false });
   const RINGS = 10;
   const wBase = [];
-  const wPos = new Float32Array((RINGS * NP + 1) * 3), wUv = new Float32Array((RINGS * NP + 1) * 2);
+  const wPos = new Float32Array((RINGS * NP + 1) * 3), wUv = new Float32Array((RINGS * NP + 1) * 2), wEdge = new Float32Array(RINGS * NP + 1);
   wBase.push([0, 0]);
   for (let k = 1; k <= RINGS; k++) for (let j = 0; j < NP; j++) { const p = POND_PTS[j]; wBase.push([p[0] * k / RINGS, p[1] * k / RINGS]); }
   const wIdx = [];
@@ -791,12 +820,13 @@ function addWater(root) {
       wIdx.push(a, b, c, b, d, c);
     }
   }
-  wBase.forEach((p, i) => { wUv[i * 2] = p[0] / 14; wUv[i * 2 + 1] = p[1] / 14; });
+  wBase.forEach((p, i) => { wUv[i * 2] = p[0] / 14; wUv[i * 2 + 1] = p[1] / 14; wEdge[i] = i ? Math.ceil(i / NP) / RINGS : 0; });
   const wGeo = new THREE.BufferGeometry();
   wGeo.setAttribute('position', new THREE.BufferAttribute(wPos, 3));
   wGeo.setAttribute('uv', new THREE.BufferAttribute(wUv, 2));
+  wGeo.setAttribute('edge', new THREE.BufferAttribute(wEdge, 1));
   wGeo.setIndex(wIdx);
-  const waterMesh = new THREE.Mesh(wGeo, waterMat);
+  const waterMesh = new THREE.Mesh(wGeo, pondMaterial());
   waterMesh.receiveShadow = true; waterMesh.renderOrder = 1;
   root.add(waterMesh);
   const setWater = (t) => {
@@ -804,25 +834,10 @@ function addWater(root) {
     wGeo.attributes.position.needsUpdate = true;
     wGeo.computeVertexNormals();
     waterTex.offset.set(t * 0.012, t * 0.006);
+    pondTime.value = t;
   };
   setWater(0);
 
-  // foam ring (alpha fades inward)
-  const foamMat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, opacity: 0.9 });
-  {
-    const pos = [], col = [], idx = [];
-    for (let i = 0; i < NP; i++) {
-      const th = (i / NP) * Math.PI * 2, r = pondR(th), c = Math.cos(th), s = Math.sin(th);
-      pos.push((r - 1.1) * c, SURF_Y + 0.09, (r - 1.1) * s, r * c, SURF_Y + 0.09, r * s);
-      col.push(1, 1, 1, 0, 1, 1, 1, 0.85);
-    }
-    for (let i = 0; i < NP; i++) { const j = (i + 1) % NP; idx.push(i * 2, j * 2, i * 2 + 1, j * 2, j * 2 + 1, i * 2 + 1); }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 4));
-    g.setIndex(idx);
-    const m = new THREE.Mesh(g, foamMat); m.renderOrder = 2; root.add(m);
-  }
   // fountain water + jets
   {
     const g = new THREE.CircleGeometry(2.35, 20); g.rotateX(-Math.PI / 2);
@@ -847,7 +862,6 @@ function addWater(root) {
   })();
   return (dt, t) => {
     setWater(t);
-    foamMat.opacity = 0.8 + 0.15 * Math.sin(t * 1.7);
     jets.scale.y = 1 + 0.07 * Math.sin(t * 5.3);
     jets.scale.x = jets.scale.z = 1 + 0.04 * Math.sin(t * 3.1);
   };
@@ -863,9 +877,9 @@ function addLilyPads(root) {
       if (pondGap(x, z) < -2.2 && Math.hypot(x - ISLAND.x, z - ISLAND.z) > 4.2) pads.push({ x, z, s: rr(0.7, 1.3), r: rr(0, 6.28), ph: rr(0, 6.28), f: rng() < 0.45 });
     }
   }
-  const padMesh = new THREE.InstancedMesh(padGeo, new THREE.MeshLambertMaterial({ color: 0xffffff, side: THREE.DoubleSide }), pads.length);
+  const padMesh = new THREE.InstancedMesh(padGeo, toon({ color: 0xffffff, side: THREE.DoubleSide }), pads.length);
   const flowers = pads.filter((p) => p.f);
-  const flowerMesh = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.17, 0), new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true }), flowers.length);
+  const flowerMesh = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.17, 0), toon({ color: 0xffffff }), flowers.length);
   pads.forEach((p, i) => padMesh.setColorAt(i, new THREE.Color(pick([0x3fae42, 0x56c23a, 0x2f9a4a, 0x6ccf45]))));
   flowers.forEach((p, i) => flowerMesh.setColorAt(i, new THREE.Color(pick([0xff7ac2, 0xffffff, 0xffd23f]))));
   padMesh.receiveShadow = true; padMesh.renderOrder = 3; flowerMesh.renderOrder = 3;
@@ -926,9 +940,56 @@ function addScatter(root) {
     put(new THREE.IcosahedronGeometry(0.075, 0), pick([0xffffff, 0xffe14a, 0xff9ec0, 0xc08bff]), x, 0.17, z, { to: parts });
     n++;
   }
-  const m = new THREE.Mesh(mergeGeometries(parts), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide }));
+  const m = new THREE.Mesh(mergeGeometries(parts), toon({ vertexColors: true, side: THREE.DoubleSide }));
   m.receiveShadow = true;
   root.add(m);
+}
+
+// wind-swept grass blades: one instanced draw. They skip the depth buffer (drawn after the opaque
+// world) so the ink-outline pass ignores them, and shrink to nothing far from the camera.
+function addGrass(root) {
+  const R = mulberry32(SEED + 7);
+  const blade = new THREE.BufferGeometry();
+  blade.setAttribute('position', new THREE.Float32BufferAttribute([-0.5, 0, 0, 0.5, 0, 0, -0.3, 0.5, 0, 0.3, 0.5, 0, 0, 1, 0], 3));
+  blade.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 0.5, 1, 0.5, 0.5, 1], 2));
+  blade.setAttribute('normal', new THREE.Float32BufferAttribute(new Array(15).fill(0).map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
+  blade.setIndex([0, 1, 2, 1, 3, 2, 2, 3, 4]);
+  const onGrass = (x, z) => pondGap(x, z) > 0.6 && distPath(x, z) > PATH_W / 2 + 0.25
+    && Math.hypot(x - PLAZA.x, z - PLAZA.z) > 7 && Math.hypot((x - KIOSK.x + 1) / 1.0, (z - KIOSK.z + 4.2) / 0.62) > 5.4
+    && !(Math.abs(x - PLAY.x) < 7.6 && Math.abs(z - PLAY.z + 0.5) < 5.6) && !(Math.abs(x + 16) < 2 && Math.abs(z - 26) < 1.6)
+    && !colliders.some((c) => (c.r !== undefined ? Math.hypot(x - c.x, z - c.z) < c.r : Math.abs(x - c.x) < c.hx && Math.abs(z - c.z) < c.hz));
+  const spots = [];
+  for (let i = 0; i < 140000 && spots.length < 42000; i++) {
+    const x = (R() * 2 - 1) * (HALF_X + 2), z = (R() * 2 - 1) * (HALF_Z + 2);
+    if (onGrass(x, z)) spots.push([x, z]);
+  }
+  const mat = toon({ side: THREE.DoubleSide, depthWrite: false });
+  const time = { value: 0 };
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.uTime = time;
+    sh.vertexShader = 'uniform float uTime;\nvarying float vTip;\n' + sh.vertexShader.replace('#include <begin_vertex>', `
+      vec3 transformed = position;
+      vec3 base = instanceMatrix[3].xyz;
+      float fade = 1.0 - smoothstep(26.0, 40.0, distance(base.xz, cameraPosition.xz));
+      transformed *= fade;
+      float gust = sin(uTime * 1.7 + base.x * 0.21 + base.z * 0.13) * 0.5 + sin(uTime * 3.1 + base.x * 0.9) * 0.18;
+      transformed.x += gust * uv.y * uv.y * 0.22 / max(0.2, length(instanceMatrix[0].xyz));
+      vTip = uv.y;`);
+    sh.fragmentShader = 'varying float vTip;\n' + sh.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n  diffuseColor.rgb *= mix(0.55, 1.15, vTip);');
+  };
+  const mesh = new THREE.InstancedMesh(blade, mat, spots.length);
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(), pos = new THREE.Vector3(), col = new THREE.Color();
+  spots.forEach(([x, z], i) => {
+    const h = 0.16 + R() * 0.2, w = 0.07 + R() * 0.05;
+    q.setFromEuler(e.set(R() * 0.3 - 0.15, R() * Math.PI, R() * 0.3 - 0.15));
+    mesh.setMatrixAt(i, m4.compose(pos.set(x, 0, z), q, sc.set(w, h, w)));
+    mesh.setColorAt(i, col.setHSL(0.27 + R() * 0.06, 0.62, 0.36 + R() * 0.1));
+  });
+  mesh.receiveShadow = true;
+  mesh.renderOrder = 1;
+  mesh.frustumCulled = false;
+  root.add(mesh);
+  return (dt, t) => { time.value = t; };
 }
 
 // ---------- builder ----------
@@ -957,6 +1018,7 @@ export function buildPark(scene) {
   finalizeMeshes(root, addSkyline());
   const updaters = [updateClouds, addWater(root), addLilyPads(root), addButterflies(root)];
   addScatter(root);
+  updaters.push(addGrass(root));
 
   const cols = colliders; // this build's list; module state is replaced by the next build
   return {

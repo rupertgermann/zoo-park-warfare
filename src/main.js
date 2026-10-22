@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SPECIES, byId } from './species.js';
+import { SPECIES, byId, DIFFICULTY } from './species.js';
 import { buildCreature } from './models.js';
 import { buildPark } from './park.js';
 import { audio } from './audio.js';
@@ -7,9 +7,11 @@ import { input } from './input.js';
 import { createFx } from './fx.js';
 import { createUI } from './ui.js';
 import { createGame } from './game.js';
+import { createPost } from './post.js';
 
 const canvas = document.getElementById('view');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+const renderer = new THREE.WebGLRenderer({ canvas, powerPreference: 'high-performance' });
+renderer.info.autoReset = false; // post-processing renders several passes per frame
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -24,6 +26,7 @@ const park = buildPark(scene);
 const fx = createFx(scene);
 const ui = createUI(document.getElementById('ui'));
 const game = createGame({ scene, park, fx, ui });
+const post = createPost(renderer, scene, camera);
 
 // ---------- portraits ----------
 (function makePortraits() {
@@ -154,7 +157,7 @@ addEventListener('keydown', e => {
     const i = SPECIES.findIndex(s => s.id === app.selected);
     const cols = 2;
     const move = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -cols, ArrowDown: cols }[e.code];
-    if (move !== undefined) {
+    if (move !== undefined && !(e.target instanceof HTMLInputElement)) {
       e.preventDefault();
       const n = (i + move + SPECIES.length) % SPECIES.length;
       select(SPECIES[n].id);
@@ -179,6 +182,11 @@ canvas.addEventListener('pointermove', e => {
   showcase.spin = 0;
 });
 canvas.addEventListener('pointerup', () => { showcase.drag = null; setTimeout(() => { if (showcase.drag === null) showcase.spin = 0.4; }, 2500); });
+
+const diffEl = ui.el('diff');
+const setDiff = id => { game.diff = DIFFICULTY.find(d => d.id === id) || DIFFICULTY[1]; diffEl.querySelector(`[value="${game.diff.id}"]`).checked = true; };
+setDiff(localStorage.getItem('pw.diff'));
+diffEl.onchange = e => { setDiff(e.target.value); localStorage.setItem('pw.diff', e.target.value); audio.sfx('uiMove'); };
 
 const volEl = ui.el('vol'), sensEl = ui.el('sens');
 volEl.value = audio.getVolume();
@@ -343,11 +351,13 @@ function frame(now) {
   }
   fx.update(app.paused ? 0 : dt, camera.position);
   ui.update(app.paused ? 0 : dt, camera);
-  renderer.render(scene, camera);
+  renderer.info.reset();
+  post.render();
 }
 
 function resize() {
   renderer.setSize(innerWidth, innerHeight, false);
+  post.setSize(innerWidth, innerHeight);
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
 }
