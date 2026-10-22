@@ -70,6 +70,7 @@ All of these need the dev server running and drive the real game in headless Chr
 | `node tools/sim/sim.mjs --n 4 --boss 2 [--diff leicht]` | Balance simulation with autopilot matches for every species |
 | `node tools/look.mjs <tag> [--dpr 2] [--lang en]` | Fixed screenshots of menu, match, pond and boss, with frame rate and draw calls |
 | `node tools/legs.mjs <tag> [pitch] [ids]` | Close-ups that check where legs meet the body |
+| `node tools/chat-lines.mjs [de\|en]` | Prints every bot chat line and fails on missing translations or unknown placeholders. Needs no dev server |
 
 `docs/brief.md` describes the module contracts. `src/species.js` holds every faction's stats, and `src/i18n.js` holds all text in both languages.
 
