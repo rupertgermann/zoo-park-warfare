@@ -11,7 +11,9 @@ All UI text is German. Stack: Vite + three.js 0.186 (ES modules, `import * as TH
 - Y up, ground at y = 0. Meters. Creatures face +Z in local space; the root origin is at the feet.
 - Park spans x in [-55, 55], z in [-40, 40]. A pond sits roughly in the middle.
 - Swimmers float with their root at `park.waterLevel` (about -0.35) inside the pond.
-- Art style: chunky low-poly cartoon, saturated colors, flat shading, big googly eyes, exaggerated proportions.
+- Art style: chunky low-poly cartoon, saturated colors, cel shading, big googly eyes, exaggerated proportions.
+- Rendering: every lit material comes from `toon()` in `src/toon.js` (shared 3-step ramp). `src/post.js` adds bloom and
+  ink outlines from the depth buffer, so anything that should not get outlines (grass blades) skips depth writes.
   Readability beats realism: tiny animals are scaled up (see heights below). Silhouettes must be distinct at 20 m.
 
 ## `src/models.js`

@@ -2,6 +2,7 @@
 // Each creature is a small rig (named groups) built from cached unit primitives and cached materials,
 // normalized to its game-scale height, and animated by one shared animator that reads only the rig.
 import * as THREE from 'three';
+import { toon } from './toon.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const PI = Math.PI;
@@ -60,8 +61,8 @@ function mat(color, o = {}) {
   const key = `${color}|${f.metal}|${f.rough}|${f.glow}|${f.opacity}`;
   let m = matCache.get(key);
   if (!m) {
-    m = new THREE.MeshStandardMaterial({
-      color, flatShading: true, metalness: f.metal, roughness: f.rough,
+    m = toon({
+      color,
       emissive: f.glow ? color : 0x000000, emissiveIntensity: f.glow,
       transparent: f.opacity < 1, opacity: f.opacity, depthWrite: f.opacity >= 1,
     });
@@ -81,8 +82,8 @@ function finishMat(f) {
   const key = `${f.metal}|${f.rough}|${f.glow}|${f.opacity}`;
   let m = finishCache.get(key);
   if (!m) {
-    m = new THREE.MeshStandardMaterial({
-      color: 0xffffff, vertexColors: true, flatShading: true, metalness: f.metal, roughness: f.rough,
+    m = toon({
+      color: 0xffffff, vertexColors: true,
       emissive: f.glow ? 0xffffff : 0x000000, emissiveIntensity: f.glow,
       transparent: f.opacity < 1, opacity: f.opacity, depthWrite: f.opacity >= 1,
     });
@@ -92,7 +93,7 @@ function finishMat(f) {
   return m;
 }
 const WHITE = 0xffffff, BLACK = 0x111111;
-const FLASH = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.9, flatShading: true });
+const FLASH = toon({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.3 });
 
 function part(parent, shape, material, p = [0, 0, 0], s = 1, r) {
   const geo = typeof shape === 'string' ? g(shape) : shape;
@@ -123,7 +124,7 @@ function newRig(id) {
     id, root, pose, model, body, neck: null, head: null, jaw: null, muzzle: null,
     eyes: [], legs: [], arms: [], wings: [], ears: [], tail: null, flutters: [], throwArm: null,
     gait: 'waddle', flyer: false, boss: false, headBob: 0, peck: 0.6, lunge: 0.12, swimBody: 0.6,
-    teamMat: new THREE.MeshStandardMaterial({ color: 0xffd23f, flatShading: true, roughness: 0.6 }),
+    teamMat: toon({ color: 0xffd23f }),
   };
 }
 

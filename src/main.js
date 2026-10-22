@@ -7,9 +7,11 @@ import { input } from './input.js';
 import { createFx } from './fx.js';
 import { createUI } from './ui.js';
 import { createGame } from './game.js';
+import { createPost } from './post.js';
 
 const canvas = document.getElementById('view');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+const renderer = new THREE.WebGLRenderer({ canvas, powerPreference: 'high-performance' });
+renderer.info.autoReset = false; // post-processing renders several passes per frame
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -24,6 +26,7 @@ const park = buildPark(scene);
 const fx = createFx(scene);
 const ui = createUI(document.getElementById('ui'));
 const game = createGame({ scene, park, fx, ui });
+const post = createPost(renderer, scene, camera);
 
 // ---------- portraits ----------
 (function makePortraits() {
@@ -348,11 +351,13 @@ function frame(now) {
   }
   fx.update(app.paused ? 0 : dt, camera.position);
   ui.update(app.paused ? 0 : dt, camera);
-  renderer.render(scene, camera);
+  renderer.info.reset();
+  post.render();
 }
 
 function resize() {
   renderer.setSize(innerWidth, innerHeight, false);
+  post.setSize(innerWidth, innerHeight);
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
 }
