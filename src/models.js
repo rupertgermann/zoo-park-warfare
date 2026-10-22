@@ -169,16 +169,27 @@ function addWing(rig, parent, side, W) {
   return w;
 }
 
+// Height of the torso ellipsoid's lower surface straight above the floor point (x, z), by bisection.
+function torsoUnderside(T, x, z) {
+  const [cx, cy, cz] = T.at, [sx, sy, sz] = T.size, c = Math.cos(-(T.pitch ?? 0)), sn = Math.sin(-(T.pitch ?? 0));
+  const inside = y => { const dy = y - cy, dz = z - cz; return ((x - cx) / sx) ** 2 + ((dy * c - dz * sn) / sy) ** 2 + ((dy * sn + dz * c) / sz) ** 2 < 1; };
+  let lo = cy - 2 * sy, hi = cy;
+  for (let i = 0; i < 30; i++) { const m = (lo + hi) / 2; if (inside(m)) hi = m; else lo = m; }
+  return hi;
+}
+
 // Generic bird: legs + webbed feet, torso, tube neck on a peck pivot, head with beak/jaw, eyes, wings.
 function bird(rig, P) {
   const { body } = rig;
+  const T = P.torso;
+  // Legs pivot just inside the torso's underside, so they stay attached however the torso is sized or pitched.
+  const top = Math.max(P.hip, torsoUnderside(T, P.legX, P.legZ ?? 0) + Math.max(P.legR * 2, T.size[1] * 0.08));
   [1, -1].forEach(side => {
-    const L = grp(body, [side * P.legX, P.hip, P.legZ ?? 0]);
-    part(L, 'limb', P.legColor, [0, 0, 0], [P.legR, P.hip, P.legR]);
-    part(L, 'foot', P.footColor ?? P.legColor, [0, -P.hip + P.foot * 0.05, P.foot * 0.6], [P.foot * 0.75, P.foot * 0.1, P.foot]);
+    const L = grp(body, [side * P.legX, top, P.legZ ?? 0]);
+    part(L, 'limb', P.legColor, [0, 0, 0], [P.legR, top, P.legR]);
+    part(L, 'foot', P.footColor ?? P.legColor, [0, -top + P.foot * 0.05, P.foot * 0.6], [P.foot * 0.75, P.foot * 0.1, P.foot]);
     rig.legs.push({ g: L, phase: side > 0 ? 0 : PI });
   });
-  const T = P.torso;
   part(body, 'sphere', T.color, T.at, T.size, [T.pitch ?? 0, 0, 0]);
   rig.swimDrop = P.hip + T.size[1] * rig.swimBody;
 
@@ -454,14 +465,17 @@ const BUILD = {
     // chunky river rat: round barrel body, big head, orange buck teeth, scaly tail, team neckerchief
     rig.gait = 'scurry'; rig.peck = 0.45; rig.lunge = 0.15;
     const { body } = rig, fur = 0x7a5233, dark = 0x3a2a22;
-    part(body, 'sphere', fur, [0, 0.29, -0.06], [0.31, 0.25, 0.42]);
+    const barrel = { at: [0, 0.29, -0.06], size: [0.31, 0.25, 0.42] };
+    part(body, 'sphere', fur, barrel.at, barrel.size);
     part(body, 'sphere', 0x5e3d24, [0, 0.38, -0.1], [0.27, 0.17, 0.36]); // shaggy back
     part(body, 'sphere', 0x9a7350, [0, 0.22, 0.02], [0.23, 0.14, 0.3]);
     [[1, 0.22, 0], [-1, 0.22, PI], [1, -0.28, PI], [-1, -0.28, 0]].forEach(([side, z, phase]) => {
-      const L = grp(body, [side * 0.18, 0.13, z]);
-      part(L, 'limb', fur, [0, 0, 0], [0.065, 0.11, 0.065]);
+      // pivot inside the barrel's underside so the leg grows out of the body instead of floating below it
+      const top = torsoUnderside(barrel, side * 0.18, z) + 0.05;
+      const L = grp(body, [side * 0.18, top, z]);
+      part(L, 'limb', fur, [0, 0, 0], [0.065, top - 0.02, 0.065]);
       const hind = z < 0; // webbed hind feet
-      part(L, 'sphere', dark, [0, -0.105, 0.04], hind ? [0.08, 0.03, 0.12] : [0.06, 0.03, 0.08]);
+      part(L, 'sphere', dark, [0, 0.025 - top, 0.04], hind ? [0.08, 0.03, 0.12] : [0.06, 0.03, 0.08]);
       rig.legs.push({ g: L, phase });
     });
     rig.tail = grp(body, [0, 0.2, -0.44]);

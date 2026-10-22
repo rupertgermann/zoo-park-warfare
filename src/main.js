@@ -370,4 +370,4 @@ requestAnimationFrame(frame);
 addEventListener('pointerdown', () => audio.unlock(), { once: true });
 
 // test hook for automated playtests
-window.__pw = { game, app, startMatch, toMenu, select, cam, renderer };
+window.__pw = { game, app, startMatch, toMenu, select, cam, camera, renderer };
