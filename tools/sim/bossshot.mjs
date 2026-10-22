@@ -2,7 +2,7 @@ import { open } from './real.mjs';
 const { b, p, errs } = await open(process.argv[2] || 'schwan');
 await p.evaluate(() => { __pw.game.autopilot = true; __pw.game.skipToBoss(); });
 await p.waitForFunction(() => __pw.game.phase === 'boss', null, { timeout: 30000 });
-const D = '/Users/rupertgermann/AI/games/zoo-park-wars/.audit/shots/combat';
+const D = '.audit/shots/combat';
 let shots = 0, stun = false, circ = false;
 for (let i = 0; i < 900 && shots < 3; i++) {
   const s = await p.evaluate(() => ({ m: __pw.game.bossAi.mode, onMe: __pw.game.bossAi.target === __pw.game.player, t: __pw.game.bossAi.t, ph: __pw.game.phase }));

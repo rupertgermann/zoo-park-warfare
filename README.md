@@ -73,6 +73,10 @@ All of these need the dev server running and drive the real game in headless Chr
 
 `docs/brief.md` describes the module contracts. `src/species.js` holds every faction's stats, and `src/i18n.js` holds all text in both languages.
 
+## License
+
+The game's source code and screenshots are released under the [MIT license](LICENSE). three.js keeps its own MIT copyright notice, see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The single-file HTML build includes both license texts.
+
 ## Credits
 
-Zoo Park Warfare was inspired by [Karen Warfare](https://karenwarfare.fun/). It is built with [three.js](https://threejs.org/) and [Vite](https://vite.dev/).
+Zoo Park Warfare was inspired by [Karen Warfare](https://karenwarfare.fun/). It is built with [three.js](https://threejs.org/) and [Vite](https://vite.dev/). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the three.js license, which ships inside the built game.

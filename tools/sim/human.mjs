@@ -58,7 +58,7 @@ for (let r = 0; r < (mode === 'duel' ? Number(ROUNDS) : 1); r++) {
       await setKey(strafe, s.ranged || s.d < 4);
       if (s.d < s.srange * 0.9) { await p.keyboard.down('KeyE'); await p.waitForTimeout(60); await p.keyboard.up('KeyE'); }
     }
-    if (SHOT && !shotDone && Date.now() - t0 > 2500) { shotDone = true; await p.screenshot({ path: `/Users/rupertgermann/AI/games/zoo-park-wars/.audit/shots/combat/${SHOT}.png` }); }
+    if (SHOT && !shotDone && Date.now() - t0 > 2500) { shotDone = true; await p.screenshot({ path: `.audit/shots/combat/${SHOT}.png` }); }
   }
   for (const k of keys) await p.keyboard.up(k);
   if (fire) await p.mouse.up();
