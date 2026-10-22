@@ -1,16 +1,14 @@
 // Motion/moment probe: logs camera jumps per frame (respawn, boss intro end) and screenshots the boss intro,
 // enrage, stun window, boss KO and defeat beats. Usage: node tools/moments.mjs [species] [--out .audit/shots/moments]
-import { chromium } from 'playwright-core';
+import { launch } from './chrome.mjs';
 import { mkdirSync } from 'node:fs';
-import { homedir } from 'node:os';
 
 const args = process.argv.slice(2);
 const sp = args[0] && !args[0].startsWith('--') ? args[0] : 'gans';
 const oi = args.indexOf('--out');
 const out = oi >= 0 ? args[oi + 1] : '.audit/shots/moments';
 mkdirSync(out, { recursive: true });
-const exe = `${homedir()}/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`;
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
+const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 const errors = [];
 page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.text()); });

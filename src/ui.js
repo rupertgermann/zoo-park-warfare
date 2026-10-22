@@ -1,11 +1,9 @@
 import * as THREE from 'three';
 import { SPECIES, RULES, TEAM_COLORS, DIFFICULTY } from './species.js';
 import { L, LANGS, lang, text } from './i18n.js';
-import { createChat } from './chat.js';
+import { createChat, hex, esc } from './chat.js';
 
-const hex = n => '#' + n.toString(16).padStart(6, '0');
 const $ = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const RANGE = { shot: 0.9, lob: 0.75, cone: 0.4, melee: 0.22 };
 const v = new THREE.Vector3();
 const MAX_HP = Math.max(...SPECIES.map(s => s.hp));

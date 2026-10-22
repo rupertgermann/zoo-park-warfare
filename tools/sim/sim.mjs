@@ -6,9 +6,8 @@
 //   --boss     boss trials per species (fresh match + skipToBoss, ends on boss KO, 3 player deaths or --cap)
 //   --realtime seconds of one real-time RAF sample to compare against the stepped clock (sanity check)
 // Needs the dev server (npm run dev). Writes raw records to <out>/sim-<timestamp>.json.
-import { chromium } from 'playwright-core';
+import { launch } from '../chrome.mjs';
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
@@ -19,8 +18,7 @@ const ALL = ['gans', 'schwan', 'kormoran', 'nutria', 'kaninchen', 'taube', 'krae
 const sel = opt('--species', 'all');
 const species = sel === 'all' ? ALL : sel.split(',');
 
-const exe = process.env.CHROME || `${homedir()}/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`;
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--use-angle=metal'] });
+const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 480, height: 300 } });
 const errors = [];
 page.on('pageerror', e => errors.push(e.stack || e.message));

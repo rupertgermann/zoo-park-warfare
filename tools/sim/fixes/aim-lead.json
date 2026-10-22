@@ -1,1 +1,0 @@
-[{ "file": "/src/main.js", "find": "if (miss < a.radius + 0.35 + t * 0.012) { bestT = t; best = c.clone(); }", "replace": "if (miss < a.radius + 0.35 + t * 0.012) { bestT = t; const lead = p.spec.primary.speed ? Math.min(1, a.pos.distanceTo(p.pos) / p.spec.primary.speed) : 0; best = c.clone().addScaledVector(a.vel.clone().setY(0), lead); }" }]

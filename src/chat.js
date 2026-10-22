@@ -7,8 +7,8 @@ const pick = arr => arr[(Math.random() * arr.length) | 0];
 const rand = (a, b) => a + Math.random() * (b - a);
 const chance = p => Math.random() < p;
 const fill = (s, vars) => s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const hex = n => '#' + n.toString(16).padStart(6, '0');
+export const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+export const hex = n => '#' + n.toString(16).padStart(6, '0');
 const MAX_ROWS = 6, GAP = 1.1, STALE = 7, GHOST = 0.07, RECENT = 12;
 
 export function createChat(box, getGame) {

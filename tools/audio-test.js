@@ -1,13 +1,12 @@
-// Usage: PW_DIR=<dir containing node_modules/playwright> node tools/audio-test.js [url]
-import { createRequire } from 'node:module';
+// Usage: node tools/audio-test.js [url]   (dev server on :5199)
 import assert from 'node:assert/strict';
+import { launch } from './chrome.mjs';
 
-const { chromium } = createRequire((process.env.PW_DIR || process.cwd()) + '/')('playwright');
-const url = process.argv[2] || 'http://localhost:5203/tools/audio.html';
+const url = process.argv[2] || 'http://localhost:5199/tools/audio.html';
 const CONTRACT = ('honk hiss croak squeak coo caw chatter quack human screech ' +
   'hit hurt ko pickup jump flap splash throw swing boom dash stun summon steal ui uiMove countdown go win lose bossIntro bossDive').split(' ');
 
-const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined, args: ['--autoplay-policy=no-user-gesture-required'] });
+const browser = await launch();
 const page = await browser.newPage();
 const errors = [];
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));

@@ -1,9 +1,8 @@
 // Headless playtest: drives the real game through menu -> match -> boss -> result, screenshots each phase,
 // fails on console errors. Usage: node tools/playtest.mjs [species] [--url http://localhost:5199] [--out .audit/shots/play]
 // Needs the dev server running (npm run dev).
-import { chromium } from 'playwright-core';
+import { launch } from './chrome.mjs';
 import { mkdirSync } from 'node:fs';
-import { homedir } from 'node:os';
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
@@ -13,8 +12,7 @@ const out = opt('--out', '.audit/shots/play');
 const W = Number(opt('--w', 1440)), H = Number(opt('--h', 900));
 mkdirSync(out, { recursive: true });
 
-const exe = process.env.CHROME || `${homedir()}/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`;
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
+const browser = await launch();
 const page = await browser.newPage({ viewport: { width: W, height: H } });
 const errors = [];
 page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') errors.push(`${m.type()}: ${m.text()}`); });

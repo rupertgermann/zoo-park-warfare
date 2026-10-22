@@ -1,17 +1,15 @@
 // Special-ability readability lever: for each species, stage the player 5 m from one rival, fire the special,
 // and screenshot the moment from the player's camera. Then let a rival fire its special at the player.
 // Usage: node tools/specials.mjs [species...] [--out .audit/shots/specials]
-import { chromium } from 'playwright-core';
+import { launch } from './chrome.mjs';
 import { mkdirSync } from 'node:fs';
-import { homedir } from 'node:os';
 
 const args = process.argv.slice(2);
 const oi = args.indexOf('--out');
 const out = oi >= 0 ? args[oi + 1] : '.audit/shots/specials';
 const ids = args.filter((a, i) => !a.startsWith('--') && args[i - 1] !== '--out');
 mkdirSync(out, { recursive: true });
-const exe = `${homedir()}/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing`;
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
+const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 const errors = [];
 page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.text()); });

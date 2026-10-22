@@ -1,1 +1,0 @@
-[{ "file": "/src/game.js", "find": "        if (ai.target?.alive) ai.point.set(ai.target.pos.x, 0, ai.target.pos.z);\n", "replace": "" }]
