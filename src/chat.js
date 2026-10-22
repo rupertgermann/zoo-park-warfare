@@ -1,7 +1,7 @@
 // Fake in-game chat: the bots gloat, sulk and panic in text. game.js reports KOs and phase changes,
 // this module decides who says what and when. Lines live in i18n.js under L.chat.
 import { TEAM_COLORS, RULES } from './species.js';
-import { L, text } from './i18n.js';
+import { L, text, label } from './i18n.js';
 
 const pick = arr => arr[(Math.random() * arr.length) | 0];
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -18,7 +18,7 @@ export function createChat(box, getGame) {
   let memo = new Map(); // actor -> { streak, by: last actor that KO'd it, byPlayer }
   const st = a => memo.get(a) ?? memo.set(a, { streak: 0, by: null, byPlayer: 0 }).get(a);
 
-  const nameOf = a => a.isPlayer ? L.chat.tag(text(a.spec).name) : a.name;
+  const nameOf = a => a.isPlayer ? L.chat.tag(label(a.spec, a.gender)) : a.name;
   const bots = (f = () => true) => getGame().actors.filter(a => !a.isPlayer && !a.isBoss && f(a));
   // a species' own lines win most of the time, the shared pool fills in
   const pool = (a, kind) => { const own = L.chat.voice[a.spec.id]?.[kind]; return own && chance(0.7) ? own : L.chat[kind]; };
@@ -36,8 +36,8 @@ export function createChat(box, getGame) {
     const row = document.createElement('div');
     row.className = m.who ? 'msg' : 'msg sys';
     const color = m.who?.isBoss ? '#4fc3ff' : m.who && hex(TEAM_COLORS[m.who.team]);
-    const label = !m.who ? L.chat.sys : m.who.isBoss ? nameOf(m.who) : `[${text(m.who.spec).name}] ${nameOf(m.who)}`;
-    row.innerHTML = `<b style="${color ? `color:${color}` : ''}">${esc(label)}:</b> ${esc(m.text)}`;
+    const tag = !m.who ? L.chat.sys : m.who.isBoss ? nameOf(m.who) : `[${label(m.who.spec, m.who.gender)}] ${nameOf(m.who)}`;
+    row.innerHTML = `<b style="${color ? `color:${color}` : ''}">${esc(tag)}:</b> ${esc(m.text)}`;
     rows.append(row);
     setTimeout(() => row.classList.add('out'), 10000);
     setTimeout(() => row.remove(), 10600);

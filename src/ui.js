@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { SPECIES, RULES, TEAM_COLORS, DIFFICULTY } from './species.js';
-import { L, LANGS, lang, text } from './i18n.js';
+import { SPECIES, RULES, TEAM_COLORS, DIFFICULTY, gendered } from './species.js';
+import { L, LANGS, lang, text, label } from './i18n.js';
 import { createChat, hex, esc } from './chat.js';
 
 const $ = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
@@ -129,7 +129,7 @@ export function createUI(root) {
   el('chaton').onchange = e => chat.setOn(e.target.checked);
 
   // ---------- menu ----------
-  let menuCb = null, selected = null;
+  let menuCb = null, selected = null, gender = 'm';
   function buildGrid() {
     el('grid').innerHTML = SPECIES.map((s, i) => `
       <button class="card-sp" role="option" data-id="${s.id}" style="--c:${hex(s.color)};--a:${hex(s.accent)}" aria-label="${esc(text(s).name)}">
@@ -145,7 +145,8 @@ export function createUI(root) {
     const bars = [s.hp / MAX_HP, s.speed / MAX_SPEED, dps / MAX_DPS, RANGE[s.primary.kind]];
     el('detail').innerHTML = `
       <p class="faction">${esc(tx.team)}</p>
-      <h2>${esc(tx.name)}</h2>
+      <h2>${esc(label(s, gender))}</h2>${gendered(s) ? `
+      <div class="gender" role="radiogroup">${['m', 'f'].map(g => `<button data-g="${g}" role="radio" aria-checked="${g === gender}" aria-label="${L.gender[g]}">${g === 'm' ? '♂' : '♀'}</button>`).join('')}</div>` : ''}
       <p class="tag">${esc(tx.tagline)}</p>
       <div class="bars">${bars.map((x, i) => `<div><span>${L.bars[i]}</span><i><b style="width:${Math.round(x * 100)}%"></b></i></div>`).join('')}</div>
       <div class="abil"><kbd>${L.click}</kbd><div><b>${esc(tx.primary)}</b><small>${L.kind[s.primary.kind]} · ${L.dmg(s.primary.dmg)}</small></div></div>
@@ -165,6 +166,13 @@ export function createUI(root) {
     root.querySelectorAll('.card-sp').forEach(b => { b.setAttribute('aria-selected', b.dataset.id === id); b.tabIndex = b.dataset.id === id ? 0 : -1; });
     renderDetail(SPECIES.find(s => s.id === id));
   }
+  el('detail').onclick = e => { const b = e.target.closest('[data-g]'); if (b && b.dataset.g !== gender) menuCb.gender(b.dataset.g); };
+  function setGender(g) {
+    gender = g;
+    const img = root.querySelector('[data-id="mensch"] img');
+    if (img) img.src = portraits.mensch;
+    if (selected) { setSelected(selected); el('detail').querySelector(`[data-g="${g}"]`)?.focus(); }
+  }
   el('go').onclick = () => menuCb?.start();
   // the menu is the only screen where the language can change, so it is the only one rebuilt live
   function setLanguage() { relabel(); buildGrid(); if (selected) setSelected(selected); }
@@ -183,7 +191,7 @@ export function createUI(root) {
     plates.clear();
     const s = game.player.spec;
     el('meimg').src = portraits[s.id] || '';
-    el('mename').textContent = `${text(s).name} · ${text(s).team}`;
+    el('mename').textContent = `${label(s, game.player.gender)} · ${text(s).team}`;
     el('abP').querySelector('span').textContent = text(s).primary;
     el('abS').querySelector('span').textContent = text(s).special;
     for (const a of game.actors) {
@@ -290,7 +298,7 @@ export function createUI(root) {
     deadT = t;
     const d = el('dead');
     d.hidden = false;
-    const by = !src || src === game.player ? '' : src.isBoss ? L.caughtBoss : L.caughtBy(esc(src.name), esc(text(src.spec).name));
+    const by = !src || src === game.player ? '' : src.isBoss ? L.caughtBoss : L.caughtBy(esc(src.name), esc(label(src.spec, src.gender)));
     const left = game.phase === 'boss' ? `<br>${L.livesLeft(game.lives)}` : '';
     d.querySelector('p').innerHTML = by + left;
   }
@@ -405,7 +413,7 @@ export function createUI(root) {
 
   relabel();
   return {
-    el, portraits, bind, bossStunned, cast, buildGrid, setLanguage, showMenu, setSelected, matchStart, scores, phase, lives, killfeed, hitmarker, hurt, died, respawned,
+    el, portraits, setGender, bind, bossStunned, cast, buildGrid, setLanguage, showMenu, setSelected, matchStart, scores, phase, lives, killfeed, hitmarker, hurt, died, respawned,
     toast, banner, showResult, showPause, update, setMuted, chat,
     hideHud() { hud.hidden = true; },
   };

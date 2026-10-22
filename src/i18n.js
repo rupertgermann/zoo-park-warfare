@@ -61,7 +61,7 @@ const de = {
   kind: { shot: 'Fernkampf', lob: 'Bogenwurf · Fläche', cone: 'Kegel · Rückstoß', melee: 'Nahkampf' },
   click: 'Klick', rightClick: 'Rechtsklick', rightClickE: 'Rechtsklick / E',
   dmg: n => `${n}&nbsp;Schaden`, cooldown: n => `Abklingzeit ${n}&nbsp;s.`,
-  flies: '🪶 Flattert', swims: '💧 Schwimmt flott', wades: '🥾 Im Teich langsam',
+  flies: '🪶 Flattert', swims: '💧 Schwimmt flott', wades: '🥾 Im Teich langsam', gender: { m: 'Männlich', f: 'Weiblich' },
   livesTitle: 'Deine Leben im Bossfight', livesAria: 'Deine Leben', bossShort: 'Eisvogel', stunned: 'BENOMMEN!',
   crownChip: '👑 Revierchef: +30 % Schaden am Eisvogel',
   pause: 'Pause', resume: 'Weiter <small>Klick</small>', volume: 'Lautstärke', sens: 'Maus-Empfindlichkeit', quit: 'Zurück zur Tierauswahl',
@@ -110,8 +110,8 @@ const de = {
       primary: 'Kronkorken', special: 'Lebensklau', desc: 'Klaut dem nächsten Gegner 35 Lebenspunkte.' },
     ente: { name: 'Stockente', team: 'Quak Force One', tagline: 'Quak happens.', names: ['Quaksi', 'Erpelino', 'Donatella'], verb: ['quakt', 'quakst', 'platt'],
       primary: 'Quak-Blaster', special: 'Küken-Kamikaze', desc: 'Drei Küken watscheln los und machen Puff.' },
-    mensch: { name: 'Parkbesucher', team: 'Bürgerinitiative Rasen', tagline: 'Hat Brot. Und schlechte Laune.', names: ['Detlef', 'Karen', 'Uwe'], verb: ['verscheucht', 'verscheuchst', ''],
-      primary: 'Brotwurf', special: 'Selfie-Blitz', desc: 'Blendet alle vor ihm für einen Moment.' },
+    mensch: { name: 'Parkbesucher', nameF: 'Parkbesucherin', team: 'Bürgerinitiative Rasen', tagline: 'Hat Brot. Und schlechte Laune.', names: ['Detlef', 'Uwe', 'Horst'], namesF: ['Karen', 'Sabine', 'Birgit'], verb: ['verscheucht', 'verscheuchst', ''],
+      primary: 'Brotwurf', special: 'Selfie-Blitz', desc: 'Blendet alle direkt davor für einen Moment.' },
     nilgans: { name: 'Nilgans', team: 'Pharaonen vom Teich', tagline: 'Eingewandert. Eingerichtet. Eingeschnappt.', names: ['Nofretete', 'Ramses', 'Kleo-Patra'], verb: ['zischt', 'zischst', 'weg'],
       primary: 'Flügelsporn', special: 'Pharaonen-Zorn', desc: 'Vier Sekunden lang schneller und mit 50 % mehr Wumms.' },
     sittich: { name: 'Halsbandsittich', team: 'Die Grüne Invasion', tagline: 'Kreischt. Klaut. Kolonisiert.', names: ['Pistazie', 'Kiwi', 'Limette'], verb: ['kreischt', 'kreischst', 'nieder'],
@@ -180,7 +180,7 @@ const en = {
   kind: { shot: 'Ranged', lob: 'Arc throw · splash', cone: 'Cone · knockback', melee: 'Melee' },
   click: 'Click', rightClick: 'Right-click', rightClickE: 'Right-click / E',
   dmg: n => `${n}&nbsp;damage`, cooldown: n => `Cooldown ${n}&nbsp;s.`,
-  flies: '🪶 Flutters', swims: '💧 Swims fast', wades: '🥾 Slow in the pond',
+  flies: '🪶 Flutters', swims: '💧 Swims fast', wades: '🥾 Slow in the pond', gender: { m: 'Male', f: 'Female' },
   livesTitle: 'Your lives in the boss fight', livesAria: 'Your lives', bossShort: 'Kingfisher', stunned: 'DAZED!',
   crownChip: '👑 Turf boss: +30 % damage to the Kingfisher',
   pause: 'Paused', resume: 'Resume <small>Click</small>', volume: 'Volume', sens: 'Mouse sensitivity', quit: 'Back to animal select',
@@ -229,7 +229,7 @@ const en = {
       primary: 'Bottle Caps', special: 'Life Steal', desc: 'Steals 35 health from the nearest enemy.' },
     ente: { name: 'Mallard', team: 'Quack Force One', tagline: 'Quack happens.', names: ['Quacksy', 'Drakelino', 'Donatella'], verb: ['quacks', 'quack', 'flat'],
       primary: 'Quack Blaster', special: 'Kamikaze Chicks', desc: 'Three ducklings waddle off and go pop.' },
-    mensch: { name: 'Park Visitor', team: 'Keep Off The Grass Committee', tagline: 'Has bread. And a bad mood.', names: ['Gary', 'Karen', 'Kevin'], verb: ['shoos', 'shoo', 'away'],
+    mensch: { name: 'Park Visitor', team: 'Keep Off The Grass Committee', tagline: 'Has bread. And a bad mood.', names: ['Gary', 'Kevin', 'Steve'], namesF: ['Karen', 'Linda', 'Debbie'], verb: ['shoos', 'shoo', 'away'],
       primary: 'Bread Throw', special: 'Selfie Flash', desc: 'Blinds everyone in front for a moment.' },
     nilgans: { name: 'Egyptian Goose', team: 'Pharaohs of the Pond', tagline: 'Moved in. Settled in. Sulking.', names: ['Nefertiti', 'Ramses', 'Cleo-Patra'], verb: ['hisses', 'hiss', 'away'],
       primary: 'Wing Spur', special: 'Pharaoh\'s Wrath', desc: 'Faster and 50 % more oomph for four seconds.' },
@@ -251,3 +251,5 @@ export function setLang(id) {
 document.documentElement.lang = lang;
 // text for a species or the boss in the current language
 export const text = s => L.species[s.id];
+// species name for one actor: follows its gender where the language has a female form
+export const label = (spec, gender) => (gender === 'f' && text(spec).nameF) || text(spec).name;

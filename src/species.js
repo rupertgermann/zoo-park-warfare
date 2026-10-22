@@ -100,6 +100,10 @@ export const BOSS = {
 
 export const byId = Object.fromEntries([...SPECIES, BOSS].map(s => [s.id, s]));
 
+// cosmetic per-actor gender ('m' | 'f'): only the park visitor has one, it never touches the stats
+export const gendered = spec => spec.id === 'mensch';
+export const voicePitch = (spec, gender) => (spec.pitch ?? 1) * (gender === 'f' ? 1.35 : 1);
+
 // Rival-team tints so you can tell teams apart even when two species look alike.
 export const TEAM_COLORS = [0xffd23f, 0xff4f79, 0x3ddc97, 0x4fb3ff, 0xb77bff];
 
