@@ -70,6 +70,7 @@ Alle Werkzeuge brauchen den laufenden Dev-Server und steuern das echte Spiel in 
 | `node tools/sim/sim.mjs --n 4 --boss 2 [--diff leicht]` | Balance-Simulation mit Autopilot-Matches für jede Tierart |
 | `node tools/look.mjs <tag> [--dpr 2] [--lang de]` | Feste Screenshots von Menü, Match, Teich und Boss, mit Bildrate und Draw Calls |
 | `node tools/legs.mjs <tag> [neigung] [ids]` | Nahaufnahmen, die prüfen, ob die Beine am Körper sitzen |
+| `node tools/chat-lines.mjs [de\|en]` | Gibt alle Bot-Chat-Zeilen aus und schlägt bei fehlenden Übersetzungen oder unbekannten Platzhaltern fehl. Braucht keinen Dev-Server |
 
 `docs/brief.md` beschreibt die Schnittstellen der Module. `src/species.js` enthält die Werte aller Fraktionen, `src/i18n.js` alle Texte in beiden Sprachen.
 

@@ -121,6 +121,7 @@ export function createGame({ scene, park, fx, ui }) {
     g.phase = p;
     g.phaseT = t;
     ui.phase(p);
+    ui.chat.phase(p);
   }
 
   const hostile = (a, b) => a !== b && (g.phase === 'boss' ? a.isBoss !== b.isBoss : a.team !== b.team);
@@ -191,6 +192,7 @@ export function createGame({ scene, park, fx, ui }) {
         audio.sfx(src.team === g.player.team ? 'win' : 'lose');
       }
     }
+    ui.chat.ko(src, t);
     if (t.isPlayer) {
       if (g.phase === 'boss') {
         g.lives--;
@@ -874,6 +876,7 @@ export function createGame({ scene, park, fx, ui }) {
       a.ring.position.set(a.pos.x, (a.inWater ? park.waterLevel : 0) + 0.04, a.pos.z);
     }
     if (g.boss) { g.boss.model.root.position.copy(g.boss.pos); g.boss.model.root.rotation.y = g.boss.yaw; }
+    ui.chat.update(dt);
   }
 
   // test hooks: jump straight to the boss, or let the AI drive the player

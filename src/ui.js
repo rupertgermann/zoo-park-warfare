@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { SPECIES, RULES, TEAM_COLORS, DIFFICULTY } from './species.js';
 import { L, LANGS, lang, text } from './i18n.js';
+import { createChat } from './chat.js';
 
 const hex = n => '#' + n.toString(16).padStart(6, '0');
 const $ = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
@@ -48,6 +49,7 @@ export function createUI(root) {
         <div class="lives" id="lives" data-tt="livesTitle" data-ta="livesAria"></div>
       </div>
       <div class="feed" id="feed" aria-live="polite"></div>
+      <div class="chat" id="chat"><div class="rows" aria-live="polite"></div><div class="typing" hidden></div></div>
       <div class="crosshair" id="cross"><i></i><i></i><i></i><i></i></div>
       <div class="hurtdir" id="hurtdir"></div>
       <div class="plates" id="plates"></div>
@@ -77,6 +79,7 @@ export function createUI(root) {
         <button class="go" id="resume" data-t="resume"></button>
         <label><span data-t="volume"></span> <input type="range" id="vol" min="0" max="1" step="0.05" /></label>
         <label><span data-t="sens"></span> <input type="range" id="sens" min="0.3" max="2.5" step="0.05" /></label>
+        <label class="check"><input type="checkbox" id="chaton" /> <span data-t="chatToggle"></span></label>
         <div class="keys small" data-t="keysPause"></div>
         <button class="ghost" id="quit" data-t="quit"></button>
       </div>
@@ -123,6 +126,9 @@ export function createUI(root) {
     f[(i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
   });
   const hud = el('hud');
+  const chat = createChat(el('chat'), () => game);
+  el('chaton').checked = chat.on;
+  el('chaton').onchange = e => chat.setOn(e.target.checked);
 
   // ---------- menu ----------
   let menuCb = null, selected = null;
@@ -402,7 +408,7 @@ export function createUI(root) {
   relabel();
   return {
     el, portraits, bind, bossStunned, cast, buildGrid, setLanguage, showMenu, setSelected, matchStart, scores, phase, lives, killfeed, hitmarker, hurt, died, respawned,
-    toast, banner, showResult, showPause, update, setMuted,
+    toast, banner, showResult, showPause, update, setMuted, chat,
     hideHud() { hud.hidden = true; },
   };
 }

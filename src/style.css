@@ -96,6 +96,15 @@ kbd {
 .kill.mine b { color: var(--ink) !important; text-decoration: underline; }
 .kill.out { opacity: 0; transform: translateX(20px); }
 @keyframes slidein { from { transform: translateX(30px); opacity: 0; } }
+.chat { position: absolute; left: 18px; bottom: 112px; width: min(400px, 36vw); display: flex; flex-direction: column; gap: 3px; font-size: 13px; font-weight: 700; color: #fff; }
+.chat .rows { display: flex; flex-direction: column; gap: 3px; }
+.chat .msg { background: rgba(27,21,48,.6); padding: 3px 9px; border-radius: 8px; line-height: 1.3; transition: opacity .6s; animation: chatin .2s ease-out; text-shadow: 0 1px 0 rgba(0,0,0,.4); }
+.chat .msg b { font-weight: 900; -webkit-text-stroke: .4px rgba(0,0,0,.5); }
+.chat .msg.sys { background: rgba(70,70,80,.55); color: #d8d8e0; font-style: italic; }
+.chat .msg.sys b { color: #ffd23f; }
+.chat .msg.out { opacity: 0; }
+.chat .typing { font-size: 12px; font-style: italic; color: rgba(255,255,255,.8); padding-left: 9px; text-shadow: 0 1px 2px #000; }
+@keyframes chatin { from { transform: translateY(8px); opacity: 0; } }
 .crosshair { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; transform: translate(-50%, -50%); }
 .crosshair i { position: absolute; background: #fff; box-shadow: 0 0 0 1.5px var(--ink); border-radius: 2px; }
 .crosshair i:nth-child(1), .crosshair i:nth-child(2) { width: 3px; height: 7px; left: 11.5px; }
@@ -164,6 +173,8 @@ kbd {
 .overlay p { font-weight: 700; margin: 0 0 16px; max-width: 380px; }
 .overlay label { display: grid; gap: 4px; font-weight: 800; font-size: 14px; margin-top: 14px; width: 100%; text-align: left; }
 .overlay input[type=range] { width: 100%; accent-color: var(--pink); }
+.overlay label.check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.overlay input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--pink); }
 .stats { display: flex; gap: 12px; margin-bottom: 20px; }
 .stats div { background: #fff; border: 3px solid var(--ink); border-radius: 14px; padding: 8px 16px; min-width: 92px; }
 .stats b { display: block; font-size: 30px; font-weight: 900; }
