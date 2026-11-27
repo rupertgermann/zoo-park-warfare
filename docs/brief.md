@@ -43,6 +43,7 @@ export function buildPark(scene) -> Park
 //   isWater(x, z) -> bool,
 //   blocked(x, z, y = 0, pad = 0) -> bool,  // true if a collider at least y tall is within pad of the point
 //   obstacleHit(from, delta, pad = 0) -> number,  // first contact along the movement, from 0 to 1, or Infinity
+//   projectileObstacleHit(from, delta) -> number,  // first contact with a prop or the island below ground level
 //   canopies: Array<{x,z,r,y0,y1}>,         // tree crowns, for the camera
 //   waterLevel: number,
 //   teamSpawns: Array<{x,z}>,   // exactly 5, spread around the pond, >= 25 m apart

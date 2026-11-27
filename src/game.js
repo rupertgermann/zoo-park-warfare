@@ -119,6 +119,16 @@ export function createGame({ scene, park, fx, ui }) {
     a.vel.set(0, 0, 0);
     a.yaw = Math.atan2(-a.pos.x, -a.pos.z);
     a.aimYaw = a.yaw;
+    syncActor(a);
+  }
+
+  function syncActor(a) {
+    a.model.root.position.copy(a.pos);
+    a.model.root.rotation.y = a.yaw;
+    a.model.root.visible = !(a.invulnT > 0 && a.alive && a.diveT <= 0 && Math.floor(g.time * 14) % 2 === 0);
+    a.ring.visible = a.alive;
+    if (a.crown) { a.crown.visible = a.alive; a.crown.position.y = a.model.height + 0.1 - (a.anim.swim ? 0.3 : 0); }
+    a.ring.position.set(a.pos.x, (a.inWater ? park.waterLevel : 0) + 0.04, a.pos.z);
   }
 
   function setPhase(p, t = 0) {
@@ -517,7 +527,7 @@ export function createGame({ scene, park, fx, ui }) {
     const water = delta.y < 0 ? (park.waterLevel - pos.y) / delta.y : Infinity;
     let end = endY > 0 ? -pos.y / delta.y : Math.min(1, water);
     if (waterAt(end)) return water <= 1 ? water : Infinity;
-    // shortcut: bracket one shoreline crossing per frame, use a terrain sweep if thin islands are added.
+    // shortcut: bracket one outer-shore crossing per frame, use a terrain sweep for narrow inlets.
     let start = land;
     for (let i = 0; i < 8; i++) {
       const mid = (start + end) / 2;
@@ -534,7 +544,7 @@ export function createGame({ scene, park, fx, ui }) {
       travel.copy(p.vel).multiplyScalar(step);
       p.life -= dt;
       const ground = groundHit(p.pos, travel);
-      let first = Math.min(ground, park.obstacleHit(p.pos, travel));
+      let first = Math.min(ground, park.projectileObstacleHit(p.pos, travel));
       const length = travel.length();
       shotRay.origin.copy(p.pos);
       shotRay.direction.copy(p.vel).normalize();
@@ -913,15 +923,7 @@ export function createGame({ scene, park, fx, ui }) {
     stepProjectiles(dt);
     stepSummons(dt);
     stepPickups(dt);
-    for (const a of g.actors) {
-      if (a.isBoss) continue;
-      a.model.root.position.copy(a.pos);
-      a.model.root.rotation.y = a.yaw;
-      a.model.root.visible = !(a.invulnT > 0 && a.alive && a.diveT <= 0 && Math.floor(g.time * 14) % 2 === 0);
-      a.ring.visible = a.alive;
-      if (a.crown) { a.crown.visible = a.alive; a.crown.position.y = a.model.height + 0.1 - (a.anim.swim ? 0.3 : 0); }
-      a.ring.position.set(a.pos.x, (a.inWater ? park.waterLevel : 0) + 0.04, a.pos.z);
-    }
+    for (const a of g.actors) if (!a.isBoss) syncActor(a);
     if (g.boss) { g.boss.model.root.position.copy(g.boss.pos); g.boss.model.root.rotation.y = g.boss.yaw; }
     ui.chat.update(dt);
   }

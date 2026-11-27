@@ -60,6 +60,9 @@ try {
     });
     assert.equal(frozen.before.phase, 'countdown');
     assert.deepEqual(frozen.after, frozen.before);
+    assert.ok(await page.evaluate(() => __pw.game.actors.every(actor =>
+      actor.model.root.position.equals(actor.pos) && actor.ring.position.x === actor.pos.x && actor.ring.position.z === actor.pos.z
+    )), 'the frozen scene shows actors and rings at their team spawns');
     await page.evaluate(() => window.restorePointerLock());
     await page.locator('#resume').click();
     await page.waitForFunction(() => document.pointerLockElement && !__pw.app.paused);
@@ -147,6 +150,25 @@ try {
   }
 
   {
+    const { page, errors } = await openPage({ viewport: { width: 390, height: 420 } });
+    await page.waitForFunction(() => document.activeElement?.dataset.id === 'gans');
+    for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowRight');
+    const visibleFocus = () => page.evaluate(() => {
+      const card = document.activeElement;
+      const { top, bottom } = card.getBoundingClientRect();
+      return card.dataset.id === 'sittich' && top >= 0 && bottom <= innerHeight;
+    });
+    assert.ok(await visibleFocus(), 'arrow navigation scrolls the focused species into view');
+    await page.reload();
+    await page.waitForFunction(() => document.activeElement?.dataset.id === 'sittich');
+    assert.ok(await visibleFocus(), 'the saved species is visible when initially focused');
+    assert.deepEqual(errors, []);
+    await page.close();
+    console.log('PASS compact menu keeps keyboard focus visible');
+  }
+
+  {
     const { page, errors } = await openPage();
     await page.locator('#go').click();
     await page.waitForFunction(() => document.pointerLockElement);
@@ -197,14 +219,19 @@ try {
         game.update(1 / 60, ctl);
         return player.pos.x;
       }
-      function shot(start, targetX, height = 0) {
+      function spawnShot(x, targetX) {
         const { player, ctl } = prep('sittich');
-        player.pos.set(37, 0, -15);
+        player.pos.set(x, 0, -15);
         player.model.root.position.copy(player.pos);
         ctl.aim.set(targetX, 0.8, -15);
         game.update(0, ctl);
         const projectile = game.projectiles[0];
         if (!projectile) throw new Error('No projectile spawned');
+        ctl.primary = false;
+        return { ctl, projectile };
+      }
+      function shot(start, targetX, height = 0) {
+        const { ctl, projectile } = spawnShot(37, targetX);
         const target = game.actors.find(a => a.team === 1);
         target.alive = true;
         target.pos.set(targetX, height, -15);
@@ -213,16 +240,11 @@ try {
         projectile.pos.set(start, height + target.model.height * 0.5, -15);
         projectile.vel.set(40, 0, 0);
         const before = target.hp;
-        ctl.primary = false;
         game.update(0.05, ctl);
         return { before, after: target.hp };
       }
       function nearestShot() {
-        const { player, ctl } = prep('sittich');
-        player.pos.set(30, 0, -15);
-        ctl.aim.set(40, 1, -15);
-        game.update(0, ctl);
-        const projectile = game.projectiles[0];
+        const { ctl, projectile } = spawnShot(30, 40);
         const far = game.actors.find(a => a.team === 1);
         const near = game.actors.find(a => a.team === 2);
         for (const [actor, x] of [[far, 38.4], [near, 37.5]]) {
@@ -234,14 +256,20 @@ try {
         projectile.pos.set(36, 1, -15);
         projectile.vel.set(60, 0, 0);
         const before = [near.hp, far.hp];
-        ctl.primary = false;
         game.update(0.05, ctl);
         return { before, after: [near.hp, far.hp] };
+      }
+      function islandShot() {
+        const { ctl, projectile } = spawnShot(37, 44);
+        projectile.pos.set(0.5, -0.12, 2);
+        projectile.vel.set(40, -0.275, 0);
+        game.update(0.05, ctl);
+        return { active: game.projectiles.includes(projectile), x: projectile.pos.x };
       }
       return {
         blockedLunge: lunge(38, 44), openLunge: lunge(38, 34),
         blockedShot: shot(38.3, 40.3), openShot: shot(36.3, 38.3),
-        aboveCover: shot(38.3, 40.3, 4), nearest: nearestShot(),
+        aboveCover: shot(38.3, 40.3, 4), nearest: nearestShot(), island: islandShot(),
       };
     });
     assert.ok(combat.blockedLunge < 38.9, `lunge crossed obstacle: ${combat.blockedLunge}`);
@@ -251,6 +279,8 @@ try {
     assert.ok(combat.aboveCover.after < combat.aboveCover.before, 'shot above cover missed');
     assert.ok(combat.nearest.after[0] < combat.nearest.before[0], 'shot missed nearest actor');
     assert.equal(combat.nearest.after[1], combat.nearest.before[1], 'shot hit farther actor first');
+    assert.equal(combat.island.active, false, 'a shot with both frame endpoints in water still hits the island');
+    assert.ok(Math.abs(combat.island.x - 0.786) < 0.001, 'the shot stops at the first island contact');
     assert.deepEqual(errors, []);
     await page.close();
     console.log('PASS blocked and open melee lunges and shots');

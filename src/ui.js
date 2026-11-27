@@ -159,7 +159,7 @@ export function createUI(root) {
     hud.hidden = true;
     el('result').hidden = el('pause').hidden = true;
     setSelected(id);
-    requestAnimationFrame(() => root.querySelector(`[data-id="${id}"]`)?.focus({ preventScroll: true }));
+    requestAnimationFrame(() => root.querySelector(`[data-id="${id}"]`)?.focus());
   }
   function setSelected(id) {
     selected = id;

@@ -198,7 +198,7 @@ addEventListener('keydown', e => {
       e.preventDefault();
       const n = (i + move + SPECIES.length) % SPECIES.length;
       select(SPECIES[n].id);
-      document.querySelector(`[data-id="${SPECIES[n].id}"]`)?.focus({ preventScroll: true });
+      document.querySelector(`[data-id="${SPECIES[n].id}"]`)?.focus();
     }
     if (e.code === 'Enter' && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); startMatch(); }
   } else if (app.mode === 'play') {

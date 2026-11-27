@@ -1061,6 +1061,7 @@ export function buildPark(scene) {
   updaters.push(addGrass(root));
 
   const cols = colliders; // this build's list; module state is replaced by the next build
+  const projectileColliders = [...cols, { ...ISLAND, h: 0 }];
   return {
     bounds: { halfX: HALF_X, halfZ: HALF_Z },
     colliders,
@@ -1075,6 +1076,7 @@ export function buildPark(scene) {
       ? Math.hypot(x - c.x, z - c.z) < c.r + pad
       : Math.abs(x - c.x) < c.hx + pad && Math.abs(z - c.z) < c.hz + pad)),
     obstacleHit: (from, delta, pad = 0) => obstacleHit(cols, from, delta, pad),
+    projectileObstacleHit: (from, delta) => obstacleHit(projectileColliders, from, delta, 0),
     update(dt, t) { for (const u of updaters) u(dt, t); },
   };
 }
