@@ -9,6 +9,7 @@ import { createFx } from './fx.js';
 import { createUI } from './ui.js';
 import { createGame } from './game.js';
 import { createPost } from './post.js';
+import { readPreference, writePreference } from './preferences.js';
 
 const canvas = document.getElementById('view');
 const renderer = new THREE.WebGLRenderer({ canvas, powerPreference: 'high-performance' });
@@ -61,14 +62,15 @@ const menschPortrait = {}; // the grid shows the player's own gender
 ui.buildGrid();
 
 // ---------- app state ----------
-const app = { mode: 'menu', paused: false, resultShown: false, selected: localStorage.getItem('pw.species') || 'gans' };
-if (!byId[app.selected]) app.selected = 'gans';
+const savedSpecies = readPreference('pw.species');
+const app = { mode: 'menu', paused: false, resultShown: false, selected: SPECIES.find(s => s.id === savedSpecies)?.id || 'gans' };
+let needsRender = false;
 function setGender(g) {
   app.gender = g;
   ui.portraits.mensch = menschPortrait[g];
   ui.setGender(g);
 }
-setGender(localStorage.getItem('pw.gender') === 'f' ? 'f' : 'm');
+setGender(readPreference('pw.gender') === 'f' ? 'f' : 'm');
 const pitchOf = id => voicePitch(byId[id], gendered(byId[id]) ? app.gender : 'm');
 const cam = { yaw: 0, pitch: 0.18, pos: new THREE.Vector3() };
 
@@ -99,7 +101,7 @@ function setShowcase(id) {
 function select(id) {
   if (id === app.selected && showcase.model) return;
   app.selected = id;
-  localStorage.setItem('pw.species', id);
+  writePreference('pw.species', id);
   ui.setSelected(id);
   setShowcase(id);
   audio.sfx('uiMove');
@@ -114,7 +116,7 @@ function greet(id) {
 
 function pickGender(g) {
   setGender(g);
-  localStorage.setItem('pw.gender', g);
+  writePreference('pw.gender', g);
   setShowcase(app.selected);
   audio.sfx('uiMove');
   greet(app.selected);
@@ -137,7 +139,7 @@ function startMatch() {
   audio.sfx('ui');
   showcase.root.visible = false;
   app.mode = 'play';
-  app.paused = false;
+  app.paused = !app.test;
   ui.showPause(false);
   app.resultShown = false;
   input.pressed.clear();
@@ -145,29 +147,42 @@ function startMatch() {
   cam.yaw = game.player.yaw;
   cam.pitch = 0.2;
   camTarget(cam.pos);
+  updateCamera(0);
+  needsRender = true;
   lock();
 }
 
-function lock() {
-  if (input.locked) return setPaused(false);
+function lockFailed() {
+  if (document.pointerLockElement !== canvas && !app.test) setPaused(true, L.noLock);
+}
+
+async function lock() {
+  if (document.pointerLockElement === canvas) return setPaused(false);
+  if (!canvas.requestPointerLock) return lockFailed();
   try {
-    const r = canvas.requestPointerLock?.({ unadjustedMovement: true });
-    r?.catch?.(() => { if (!input.locked && !app.test) setPaused(true, L.noLock); });
-  } catch { setPaused(true); }
+    await canvas.requestPointerLock({ unadjustedMovement: true });
+  } catch (error) {
+    if (error?.name !== 'NotSupportedError') return lockFailed();
+    if (app.mode !== 'play' || game.phase === 'over') return;
+    try { await canvas.requestPointerLock(); } catch { lockFailed(); }
+  }
 }
 
 function setPaused(on, note = '') {
   if (app.mode !== 'play' || game.phase === 'over') return;
+  if (!on && app.paused) input.pressed.clear();
   app.paused = on;
   ui.showPause(on, { resume: lock, quit: toMenu }, note);
 }
 
 // Pointer lock is the source of truth: losing it pauses, regaining it resumes.
 document.addEventListener('pointerlockchange', () => {
-  if (app.mode !== 'play') return;
-  if (input.locked) { if (app.paused) setPaused(false); }
-  else if (!app.paused && game.phase !== 'over' && !app.test) setPaused(true);
+  if (document.pointerLockElement === canvas) {
+    if (app.mode !== 'play' || game.phase === 'over') document.exitPointerLock();
+    else if (app.paused) setPaused(false);
+  } else if (!app.paused && !app.test) setPaused(true);
 });
+document.addEventListener('pointerlockerror', lockFailed);
 document.addEventListener('visibilitychange', () => { if (document.hidden && !app.test) setPaused(true); });
 canvas.addEventListener('click', () => { if (app.mode === 'play' && !input.locked && !app.paused) lock(); });
 
@@ -196,26 +211,31 @@ addEventListener('keydown', e => {
 });
 
 // Drag to spin the menu creature.
-canvas.addEventListener('pointerdown', e => { if (app.mode === 'menu') { showcase.drag = e.clientX; canvas.setPointerCapture(e.pointerId); } });
+const menu = ui.el('menu');
+addEventListener('pointerdown', e => {
+  if (app.mode !== 'menu' || (e.target !== canvas && e.target !== menu)) return;
+  showcase.drag = e.clientX;
+  canvas.setPointerCapture(e.pointerId);
+});
 canvas.addEventListener('pointermove', e => {
   if (app.mode !== 'menu' || showcase.drag === null) return;
   showcase.root.rotation.y += (e.clientX - showcase.drag) * 0.012;
   showcase.drag = e.clientX;
   showcase.spin = 0;
 });
-canvas.addEventListener('pointerup', () => { showcase.drag = null; setTimeout(() => { if (showcase.drag === null) showcase.spin = 0.4; }, 2500); });
+canvas.addEventListener('lostpointercapture', () => { showcase.drag = null; setTimeout(() => { if (showcase.drag === null) showcase.spin = 0.4; }, 2500); });
 
 const diffEl = ui.el('diff');
 const setDiff = id => { game.diff = DIFFICULTY.find(d => d.id === id) || DIFFICULTY[1]; diffEl.querySelector(`[value="${game.diff.id}"]`).checked = true; };
-setDiff(localStorage.getItem('pw.diff'));
-diffEl.onchange = e => { setDiff(e.target.value); localStorage.setItem('pw.diff', e.target.value); audio.sfx('uiMove'); };
+setDiff(readPreference('pw.diff'));
+diffEl.onchange = e => { setDiff(e.target.value); writePreference('pw.diff', e.target.value); audio.sfx('uiMove'); };
 ui.el('lang').onchange = e => { setLang(e.target.value); ui.setLanguage(); audio.sfx('uiMove'); };
 
 const volEl = ui.el('vol'), sensEl = ui.el('sens');
 volEl.value = audio.getVolume();
 volEl.oninput = () => audio.setVolume(Number(volEl.value));
 sensEl.value = input.sensitivity;
-sensEl.oninput = () => { input.sensitivity = Number(sensEl.value); localStorage.setItem('pw.sens', sensEl.value); };
+sensEl.oninput = () => { input.sensitivity = Number(sensEl.value); writePreference('pw.sens', sensEl.value); };
 ui.el('mute').onclick = () => { audio.unlock(); ui.setMuted(audio.toggleMute()); };
 ui.setMuted(audio.isMuted());
 
@@ -356,11 +376,15 @@ function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
+  if (app.paused) {
+    if (needsRender) render(0);
+    return;
+  }
   const t = now / 1000;
   park.update(dt, t);
   if (app.mode === 'menu') {
     updateMenuCamera(dt, t);
-  } else if (!app.paused) {
+  } else {
     readPlayer();
     game.update(dt, ctl);
     updateCamera(dt);
@@ -372,10 +396,15 @@ function frame(now) {
       ui.showResult({ again: startMatch, change: toMenu });
     }
   }
-  fx.update(app.paused ? 0 : dt, camera.position);
-  ui.update(app.paused ? 0 : dt, camera);
+  render(dt);
+}
+
+function render(dt) {
+  fx.update(dt, camera.position);
+  ui.update(dt, camera);
   renderer.info.reset();
   post.render();
+  needsRender = false;
 }
 
 function resize() {
@@ -383,8 +412,10 @@ function resize() {
   post.setSize(innerWidth, innerHeight);
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
+  needsRender = true;
 }
 addEventListener('resize', resize);
+canvas.addEventListener('webglcontextrestored', () => { needsRender = true; });
 resize();
 toMenu();
 requestAnimationFrame(frame);

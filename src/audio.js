@@ -1,6 +1,8 @@
 // Fully synthesized WebAudio: no files. `audio` is the game singleton; createAudio(ctx) lets tools/tests inject an
 // OfflineAudioContext. Listener yaw: forward = (sin yaw, cos yaw), same as creatures (yaw 0 faces +Z).
 
+import { readPreference, writePreference } from './preferences.js';
+
 export const SFX_NAMES = [
   'honk', 'hiss', 'croak', 'squeak', 'coo', 'caw', 'chatter', 'quack', 'human', 'screech',
   'hit', 'hurt', 'ko', 'pickup', 'jump', 'flap', 'splash', 'throw', 'swing', 'boom', 'dash', 'stun',
@@ -19,8 +21,8 @@ const note = (s) => {
 };
 const rnd = (a, b) => a + Math.random() * (b - a);
 const store = {
-  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage blocked */ } },
+  get(k, d) { try { const v = readPreference(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { writePreference(k, JSON.stringify(v)); },
 };
 
 // Music tables. Each bar is 16 sixteenth steps; melody tokens are note names or '.' (hold/rest).
@@ -347,7 +349,6 @@ export function createAudio(injected = null) {
     const prio = PRIORITY.has(name);
     if (!prio && ends.length >= MAX_VOICES) return;
     if (!prio && now - (lastPlay[name] ?? -1) < 0.03) return;
-    lastPlay[name] = now;
     let att = 1, pan = 0;
     if (x != null && z != null) {
       const dx = x - lx, dz = z - lz, dist = Math.hypot(dx, dz);
@@ -355,6 +356,7 @@ export function createAudio(injected = null) {
       att = dist <= 2 ? 1 : (1 - (dist - 2) / (MAX_DIST - 2)) ** 2;
       if (dist > 0.01) pan = Math.max(-1, Math.min(1, ((-dx * Math.cos(lyaw) + dz * Math.sin(lyaw)) / dist) * Math.min(1, dist / 3) * 0.9));
     }
+    lastPlay[name] = now;
     const out = ctx.createGain();
     out.gain.value = vol * att;
     let tail = out;

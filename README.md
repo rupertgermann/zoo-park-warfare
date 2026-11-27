@@ -58,18 +58,22 @@ This writes `dist/zoo-park-warfare.html`. It contains the whole game: all models
 
 ## Publish to GitHub Pages
 
-The [deployment workflow](.github/workflows/pages.yml) builds the single-file version on every pull request against `master`. Every push to `master` builds it again and publishes it to GitHub Pages as `index.html`. A failed build stops the deployment, so the previous version stays online. To republish by hand, run **Deploy game to GitHub Pages** from the **Actions** tab.
+The [deployment workflow](.github/workflows/pages.yml) builds and playtests the single-file version on every pull request against `master`. Every push to `master` runs both checks again before publishing the game to GitHub Pages as `index.html`. If either check fails, the previous version stays online. To republish by hand, run **Deploy game to GitHub Pages** from the **Actions** tab.
 
 ## Development tools
 
-All of these need the dev server running and drive the real game in headless Chromium.
+After `npm ci`, install the browser for the development tools with `npx playwright-core install --no-shell chromium`. On Linux, add `--with-deps` if Chromium's system libraries are missing. To use an existing Chrome or Chromium binary, set `CHROME` to the path to its executable.
+
+Start the dev server with `npm run dev` for the browser tools that use it.
 
 | Command | What it does |
 |---|---|
 | `node tools/playtest.mjs <species>` | Plays menu, match, boss and results, saves screenshots, fails on console errors |
+| `node tools/playtest.mjs --ci` | Checks that the single-file build plays through to the result. Run `npm run build:html` first. |
 | `node tools/sim/sim.mjs --n 4 --boss 2 [--diff leicht]` | Balance simulation with autopilot matches for every species |
 | `node tools/look.mjs <tag> [--dpr 2] [--lang en]` | Fixed screenshots of menu, match, pond and boss, with frame rate and draw calls |
 | `node tools/legs.mjs <tag> [pitch] [ids]` | Close-ups that check where legs meet the body |
+| `node tools/audio-test.js` | Checks sound effects, music, and saved audio settings |
 | `node tools/chat-lines.mjs [de\|en]` | Prints every bot chat line and fails on missing translations or unknown placeholders. Needs no dev server |
 
 `docs/brief.md` describes the module contracts. `src/species.js` holds every faction's stats, and `src/i18n.js` holds all text in both languages.

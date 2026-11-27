@@ -183,11 +183,12 @@ export function createUI(root) {
     el('menu').hidden = el('result').hidden = el('pause').hidden = true;
     hud.hidden = false;
     el('bossbar').hidden = true;
+    el('crownchip').hidden = true;
     el('scores').hidden = false;
     el('dead').hidden = true;
     el('feed').innerHTML = '';
     el('plates').innerHTML = '';
-    for (const n of nums) { n.life = 0; n.el.style.opacity = 0; el('plates').append(n.el); }
+    for (const n of nums) { n.life = 0; n.target = null; n.el.style.opacity = 0; el('plates').append(n.el); }
     plates.clear();
     const s = game.player.spec;
     el('meimg').src = portraits[s.id] || '';
@@ -272,10 +273,11 @@ export function createUI(root) {
     void c.offsetWidth;
     c.classList.add(isKo ? 'ko' : 'hit');
     let n = lastNum.get(t);
-    if (n && n.life > 0.5 && !isKo) { n.sum += amount; n.el.textContent = n.sum; n.life = 0.9; return; }
+    if (n && n.target === t && n.life > 0.5 && !isKo) { n.sum += amount; n.el.textContent = n.sum; n.life = 0.9; return; }
     n = nums.find(n => n.life <= 0);
     if (!n) { n = { el: $('<div class="num"></div>'), life: 0 }; el('plates').append(n.el); nums.push(n); }
     lastNum.set(t, n);
+    n.target = t;
     n.sum = amount;
     n.el.textContent = amount;
     n.el.className = 'num' + (isKo ? ' big' : '') + (t.isBoss ? ' boss' : '');
@@ -379,7 +381,7 @@ export function createUI(root) {
       v.copy(n.pos).project(camera);
       n.el.style.opacity = Math.min(1, n.life * 3);
       n.el.style.transform = `translate3d(${(v.x * 0.5 + 0.5) * W}px,${(-v.y * 0.5 + 0.5) * H}px,0) translate(-50%,-50%) scale(${1 + Math.max(0, n.life - 0.7) * 2})`;
-      if (n.life <= 0) n.el.style.opacity = 0;
+      if (n.life <= 0) { n.target = null; n.el.style.opacity = 0; }
     }
   }
   // Edge arrow toward the boss whenever it is off screen.

@@ -1,3 +1,5 @@
+import { readPreference, writePreference } from './preferences.js';
+
 // All player-facing text, one table per language. species.js holds only stats, keyed by the same ids.
 // verb: [form after a name, form after "you"/"du", particle]; the killfeed reads "<src> <verb> <target> <particle>".
 // Bot chat lines. {k} = whoever scored the KO, {v} = whoever got KO'd, {n} = a number, {team} = a team name.
@@ -240,12 +242,12 @@ const en = {
 };
 
 export const LANGS = { de, en };
-const saved = localStorage.getItem('pw.lang');
-export let lang = LANGS[saved] ? saved : navigator.language?.startsWith('de') ? 'de' : 'en';
+const saved = readPreference('pw.lang');
+export let lang = Object.hasOwn(LANGS, saved) ? saved : navigator.language?.startsWith('de') ? 'de' : 'en';
 export let L = LANGS[lang];
 export function setLang(id) {
   lang = id; L = LANGS[id];
-  localStorage.setItem('pw.lang', id);
+  writePreference('pw.lang', id);
   document.documentElement.lang = id;
 }
 document.documentElement.lang = lang;
