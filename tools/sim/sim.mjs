@@ -79,7 +79,8 @@ const runOnce = (spec, mode, cap, opp) => page.evaluate(async ({ spec, mode, cap
   app.paused = true;
   g.autopilot = true;
   const DT = 1 / 60, ctl = null;
-  const per = new Map(g.actors.map(a => [a, { anchor: a.pos.clone(), t: 0, air: 0, wet: 0, stun: 0, live: 0, cdP: 0, dmg: 0, fires: 0, hits: 0, melee: 0, mhits: 0 }]));
+  const track = a => ({ anchor: a.pos.clone(), t: 0, stuck: null, air: 0, wet: 0, stun: 0, live: 0, cdP: 0, dmg: 0, fires: 0, hits: 0, melee: 0, mhits: 0 });
+  const per = new Map(g.actors.map(a => [a, track(a)]));
   const stuck = [];
   let pickups = 0;
   const pk = g.pickups.map(x => x.respawnT);
@@ -111,22 +112,27 @@ const runOnce = (spec, mode, cap, opp) => page.evaluate(async ({ spec, mode, cap
     if (fighting) for (const a of g.actors) {
       if (a.isBoss) continue;
       let s = per.get(a);
-      if (!s) { s = { anchor: a.pos.clone(), t: 0, air: 0, wet: 0, stun: 0, live: 0, cdP: 0, dmg: 0, fires: 0, hits: 0, melee: 0, mhits: 0 }; per.set(a, s); }
+      if (!s) { s = track(a); per.set(a, s); }
       const fired = a.cdP > s.cdP + 1e-6, kind = a.spec.primary.kind;
       if (fired) s.fires++;
       if (a.stats.dmg > s.dmg) s.hits++;
       if (fired && (kind === 'melee' || kind === 'cone')) { s.melee++; if (a.stats.dmg > s.dmg) s.mhits++; }
       s.cdP = a.cdP; s.dmg = a.stats.dmg;
-      if (!a.alive) { s.anchor.copy(a.pos); s.t = 0; continue; }
+      if (!a.alive) { s.anchor.copy(a.pos); s.t = 0; s.stuck = null; continue; }
       s.live += DT;
       if (a.pos.y > 2) s.air += DT;
       if (a.inWater) s.wet += DT;
       if (a.stunT > 0) s.stun += DT;
       const w = a.ai.ctl?.wish;
       const wants = w && w.lengthSq() > 0.04 && a.stunT <= 0;
-      if (!wants || a.pos.distanceTo(s.anchor) > 0.75) { s.anchor.copy(a.pos); if (s.t > 3) stuck.at(-1).dur = +s.t.toFixed(1); s.t = 0; continue; }
+      if (!wants || a.pos.distanceTo(s.anchor) > 0.75) { s.anchor.copy(a.pos); s.t = 0; s.stuck = null; continue; }
       s.t += DT;
-      if (s.t >= 3 && s.t - DT < 3) stuck.push({ spec: a.spec.id, player: a.isPlayer, phase: g.phase, x: +a.pos.x.toFixed(1), z: +a.pos.z.toFixed(1), y: +a.pos.y.toFixed(1), water: a.inWater, dur: 3 });
+      if (s.t < 3) continue;
+      if (!s.stuck) {
+        s.stuck = { spec: a.spec.id, player: a.isPlayer, phase: g.phase, x: +a.pos.x.toFixed(1), z: +a.pos.z.toFixed(1), y: +a.pos.y.toFixed(1), water: a.inWater, dur: 0 };
+        stuck.push(s.stuck);
+      }
+      s.stuck.dur = s.t;
     }
     if (duel && (!duel.A.alive || !duel.B.alive || g.time - duel.t0 > cap)) {
       return { spec, opp, winner: !duel.B.alive ? spec : !duel.A.alive ? opp : 'draw', t: +(g.time - duel.t0).toFixed(1),
@@ -157,7 +163,7 @@ const runOnce = (spec, mode, cap, opp) => page.evaluate(async ({ spec, mode, cap
       fires: s.fires, hits: s.hits, melee: s.melee, mhits: s.mhits, airFrac: s.live ? +(s.air / s.live).toFixed(3) : 0, wetFrac: s.live ? +(s.wet / s.live).toFixed(3) : 0, stunT: +s.stun.toFixed(1),
       bossDmg: bossBase ? a.stats.dmg - (bossBase.dmg.get(a) ?? 0) : 0 };
   });
-  R.stuck = stuck;
+  R.stuck = stuck.map(event => ({ ...event, dur: +event.dur.toFixed(1) }));
   R.pickups = pickups;
   if (bossBase) {
     const b = g.boss;

@@ -2,6 +2,7 @@
 // this module decides who says what and when. Lines live in i18n.js under L.chat.
 import { TEAM_COLORS, RULES } from './species.js';
 import { L, text, label } from './i18n.js';
+import { readPreference, writePreference } from './preferences.js';
 
 const pick = arr => arr[(Math.random() * arr.length) | 0];
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -13,7 +14,7 @@ const MAX_ROWS = 6, GAP = 1.1, STALE = 7, GHOST = 0.07, RECENT = 12;
 
 export function createChat(box, getGame) {
   const rows = box.querySelector('.rows'), typing = box.querySelector('.typing');
-  let on = localStorage.getItem('pw.chat') !== 'off';
+  let on = readPreference('pw.chat') !== 'off';
   let queue = [], gap = 0, idleT = 0, clock = 0, leadSaid = new Set(), recent = [];
   let memo = new Map(); // actor -> { streak, by: last actor that KO'd it, byPlayer }
   const st = a => memo.get(a) ?? memo.set(a, { streak: 0, by: null, byPlayer: 0 }).get(a);
@@ -134,7 +135,7 @@ export function createChat(box, getGame) {
 
   function setOn(v) {
     on = v;
-    localStorage.setItem('pw.chat', v ? 'on' : 'off');
+    writePreference('pw.chat', v ? 'on' : 'off');
     box.hidden = !v;
     if (!v) queue = [];
   }

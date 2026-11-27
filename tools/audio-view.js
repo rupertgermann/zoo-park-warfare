@@ -44,7 +44,8 @@ window.__render = async (kind, name, opts) => {
   const secs = kind === 'music' ? 6 : 3.5, rate = 44100;
   const off = new OfflineAudioContext(2, secs * rate, rate);
   const a = createAudio(off);
-  if (kind === 'music') { a.music(name); a.pump(secs); } else a.sfx(name, opts);
+  if (kind === 'music') { a.music(name); a.pump(secs); }
+  else for (const options of Array.isArray(opts) ? opts : [opts]) a.sfx(name, options);
   const out = await off.startRendering();
   let bad = 0, peak = 0;
   const rms = [0, 1].map((c) => {

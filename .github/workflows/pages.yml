@@ -25,6 +25,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build:html
+      - run: npx playwright-core install --with-deps --no-shell chromium
+      - run: node tools/playtest.mjs --ci
       - name: Prepare website
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
         run: |

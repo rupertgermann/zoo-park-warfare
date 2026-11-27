@@ -58,18 +58,22 @@ Das erzeugt `dist/zoo-park-warfare.html`. Die Datei enthält das ganze Spiel. Al
 
 ## Auf GitHub Pages veröffentlichen
 
-Der [Deployment-Workflow](.github/workflows/pages.yml) baut die Einzeldatei bei jedem Pull Request gegen `master`. Jeder Push auf `master` baut sie erneut und veröffentlicht sie als `index.html` auf GitHub Pages. Schlägt der Build fehl, wird nichts veröffentlicht, und die bisherige Version bleibt online. Von Hand veröffentlichen kannst du im Tab **Actions** mit **Deploy game to GitHub Pages**.
+Der [Deployment-Workflow](.github/workflows/pages.yml) baut und prüft die Einzeldatei bei jedem Pull Request gegen `master`. Bei jedem Push auf `master` laufen beide Schritte erneut, bevor das Spiel als `index.html` auf GitHub Pages erscheint. Schlägt einer der Schritte fehl, bleibt die bisherige Version online. Von Hand veröffentlichen kannst du im Tab **Actions** mit **Deploy game to GitHub Pages**.
 
 ## Entwicklerwerkzeuge
 
-Alle Werkzeuge brauchen den laufenden Dev-Server und steuern das echte Spiel in einem Headless-Chromium.
+Installiere nach `npm ci` den Browser für die Entwicklerwerkzeuge mit `npx playwright-core install --no-shell chromium`. Fehlen unter Linux Systembibliotheken für Chromium, ergänze den Schalter `--with-deps`. Wenn du eine vorhandene Chrome- oder Chromium-Installation nutzen möchtest, setze `CHROME` auf den Pfad zur ausführbaren Datei.
+
+Starte für Browser-Werkzeuge, die den Dev-Server brauchen, `npm run dev`.
 
 | Befehl | Was er macht |
 |---|---|
 | `node tools/playtest.mjs <species>` | Spielt Menü, Match, Boss und Ergebnis durch, speichert Screenshots, schlägt bei Konsolenfehlern fehl |
+| `node tools/playtest.mjs --ci` | Prüft, ob die Einzeldatei bis zum Ergebnis spielbar ist. Führe zuerst `npm run build:html` aus. |
 | `node tools/sim/sim.mjs --n 4 --boss 2 [--diff leicht]` | Balance-Simulation mit Autopilot-Matches für jede Tierart |
 | `node tools/look.mjs <tag> [--dpr 2] [--lang de]` | Feste Screenshots von Menü, Match, Teich und Boss, mit Bildrate und Draw Calls |
 | `node tools/legs.mjs <tag> [neigung] [ids]` | Nahaufnahmen, die prüfen, ob die Beine am Körper sitzen |
+| `node tools/audio-test.js` | Prüft Soundeffekte, Musik und gespeicherte Audioeinstellungen |
 | `node tools/chat-lines.mjs [de\|en]` | Gibt alle Bot-Chat-Zeilen aus und schlägt bei fehlenden Übersetzungen oder unbekannten Platzhaltern fehl. Braucht keinen Dev-Server |
 
 `docs/brief.md` beschreibt die Schnittstellen der Module. `src/species.js` enthält die Werte aller Fraktionen, `src/i18n.js` alle Texte in beiden Sprachen.

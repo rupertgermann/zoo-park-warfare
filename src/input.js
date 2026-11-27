@@ -1,10 +1,12 @@
 // Keyboard + mouse state. Game reads it; nothing here knows about the game.
+import { readPreference } from './preferences.js';
+
 export const input = {
   keys: new Set(),
   pressed: new Set(), // codes pressed since the last frame, so sub-frame taps are not lost
   mouse: { dx: 0, dy: 0, left: false, right: false },
   locked: false,
-  sensitivity: Number(localStorage.getItem('pw.sens') || 1),
+  sensitivity: Number(readPreference('pw.sens') || 1),
   consumeLook() {
     const d = { dx: this.mouse.dx, dy: this.mouse.dy };
     this.mouse.dx = this.mouse.dy = 0;
@@ -38,5 +40,8 @@ addEventListener('mouseup', e => {
 addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('pointerlockchange', () => {
   input.locked = !!document.pointerLockElement;
-  if (!input.locked) input.mouse.left = input.mouse.right = false;
+  if (!input.locked) {
+    input.mouse.dx = input.mouse.dy = 0;
+    input.mouse.left = input.mouse.right = false;
+  }
 });

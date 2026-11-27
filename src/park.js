@@ -187,6 +187,46 @@ const circle = (x, z, r, h) => colliders.push({ x, z, r, h });
 const rect = (x, z, hx, hz, h) => colliders.push({ x, z, hx, hz, h });
 const block = (x, z, r) => blockers.push({ x, z, r });
 
+// First contact with a solid prop along from + delta * t, or Infinity when clear.
+function obstacleHit(colliders, from, delta, pad) {
+  const { x, y, z } = from;
+  const { x: dx, y: dy, z: dz } = delta;
+  const endY = y + dy, minY = Math.min(y, endY), speedSq = dx * dx + dz * dz;
+  const minX = x + Math.min(0, dx), maxX = x + Math.max(0, dx);
+  const minZ = z + Math.min(0, dz), maxZ = z + Math.max(0, dz);
+  let first = Infinity;
+  for (const c of colliders) {
+    const hx = (c.r ?? c.hx) + pad, hz = (c.r ?? c.hz) + pad;
+    if (minY > c.h || maxX <= c.x - hx || minX >= c.x + hx || maxZ <= c.z - hz || minZ >= c.z + hz) continue;
+    let enter = y > c.h ? (c.h - y) / dy : 0;
+    let exit = endY > c.h ? (c.h - y) / dy : 1;
+    if (enter >= first) continue;
+    const ox = x - c.x, oz = z - c.z;
+    if (c.r === undefined) {
+      if (dx) {
+        enter = Math.max(enter, (-Math.sign(dx) * hx - ox) / dx);
+        exit = Math.min(exit, (Math.sign(dx) * hx - ox) / dx);
+      }
+      if (dz) {
+        enter = Math.max(enter, (-Math.sign(dz) * hz - oz) / dz);
+        exit = Math.min(exit, (Math.sign(dz) * hz - oz) / dz);
+      }
+    } else {
+      const offsetSq = ox * ox + oz * oz - hx * hx;
+      if (speedSq) {
+        const along = ox * dx + oz * dz;
+        const discriminant = along * along - speedSq * offsetSq;
+        if (discriminant <= 0) continue;
+        const root = Math.sqrt(discriminant);
+        enter = Math.max(enter, (-along - root) / speedSq);
+        exit = Math.min(exit, (-along + root) / speedSq);
+      } else if (offsetSq >= 0) continue;
+    }
+    if (enter <= exit && exit > 0) first = Math.min(first, enter);
+  }
+  return first;
+}
+
 const PATH_W = 3.6;
 const PATHS = [];
 {
@@ -1021,6 +1061,7 @@ export function buildPark(scene) {
   updaters.push(addGrass(root));
 
   const cols = colliders; // this build's list; module state is replaced by the next build
+  const projectileColliders = [...cols, { ...ISLAND, h: 0 }];
   return {
     bounds: { halfX: HALF_X, halfZ: HALF_Z },
     colliders,
@@ -1034,6 +1075,8 @@ export function buildPark(scene) {
     blocked: (x, z, y = 0, pad = 0) => cols.some((c) => y <= c.h && (c.r !== undefined
       ? Math.hypot(x - c.x, z - c.z) < c.r + pad
       : Math.abs(x - c.x) < c.hx + pad && Math.abs(z - c.z) < c.hz + pad)),
+    obstacleHit: (from, delta, pad = 0) => obstacleHit(cols, from, delta, pad),
+    projectileObstacleHit: (from, delta) => obstacleHit(projectileColliders, from, delta, 0),
     update(dt, t) { for (const u of updaters) u(dt, t); },
   };
 }

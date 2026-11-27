@@ -40,6 +40,8 @@ const R = await page.evaluate(() => window.__render('sfx', 'honk', { x: -10, z: 
 assert(R.rmsR > R.rmsL * 1.5, 'source at -x is right of a yaw-0 listener');
 const far = await page.evaluate(() => window.__render('sfx', 'boom', { x: 70, z: 0 }));
 assert.equal(far.rms, 0, 'inaudible beyond 60 m');
+const nearAfterFar = await page.evaluate(() => window.__render('sfx', 'boom', [{ x: 70, z: 0 }, { x: 0, z: 0 }]));
+assert(nearAfterFar.rms > 0.003 && nearAfterFar.bad === 0, 'nearby sound plays after an inaudible one of the same name');
 
 // Real page: click every button, then confirm live output on the master bus.
 for (const sel of ['[data-sfx]', '[data-sfx2]']) {

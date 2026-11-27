@@ -24,6 +24,8 @@ export function createGame({ scene, park, fx, ui }) {
     lives: 0, shake: 0, result: null, time: 0, hitstop: 0, slow: 0.15,
   };
   const pool = {};
+  const travel = new THREE.Vector3(), impact = new THREE.Vector3();
+  const shotRay = new THREE.Ray(), hitSphere = new THREE.Sphere();
   let lastCount = 0; // last countdown number shown
   ui.bind(g);
 
@@ -33,7 +35,7 @@ export function createGame({ scene, park, fx, ui }) {
     for (const p of g.projectiles) release(p.mesh, p.model);
     for (const s of g.summons) release(s.mesh, s.model);
     for (const p of g.pickups) scene.remove(p.mesh);
-    Object.assign(g, { actors: [], projectiles: [], summons: [], pickups: [], player: null, boss: null, result: null });
+    Object.assign(g, { phase: 'idle', phaseT: 0, actors: [], projectiles: [], summons: [], pickups: [], player: null, boss: null, result: null });
     for (const k in pool) delete pool[k]; // pooled props may carry the previous language's sound word
     fx.clear();
   }
@@ -117,6 +119,16 @@ export function createGame({ scene, park, fx, ui }) {
     a.vel.set(0, 0, 0);
     a.yaw = Math.atan2(-a.pos.x, -a.pos.z);
     a.aimYaw = a.yaw;
+    syncActor(a);
+  }
+
+  function syncActor(a) {
+    a.model.root.position.copy(a.pos);
+    a.model.root.rotation.y = a.yaw;
+    a.model.root.visible = !(a.invulnT > 0 && a.alive && a.diveT <= 0 && Math.floor(g.time * 14) % 2 === 0);
+    a.ring.visible = a.alive;
+    if (a.crown) { a.crown.visible = a.alive; a.crown.position.y = a.model.height + 0.1 - (a.anim.swim ? 0.3 : 0); }
+    a.ring.position.set(a.pos.x, (a.inWater ? park.waterLevel : 0) + 0.04, a.pos.z);
   }
 
   function setPhase(p, t = 0) {
@@ -273,7 +285,7 @@ export function createGame({ scene, park, fx, ui }) {
       spawnProjectile(a, { model: p.model, pos: from, vel: ballistic(from, aim, p.speed, 18), dmg, gravity: 18, splash: p.splash, life: 3 });
       if (near(a)) audio.sfx('throw', { x: a.pos.x, z: a.pos.z, vol: 0.4 });
     } else {
-      if (p.lunge) { const dx = aim.x - a.pos.x, dz = aim.z - a.pos.z, d = Math.hypot(dx, dz), step = Math.min(p.lunge, Math.max(0, d - p.range * 0.5)); if (d > 0.01) { a.pos.x += dx / d * step; a.pos.z += dz / d * step; } }
+      if (p.lunge) lunge(a, aim, p);
       if (hitArc(a, p.range, p.arc, dmg, p.knock) && a.isPlayer) g.hitstop = Math.max(g.hitstop, 0.035);
       if (near(a)) audio.sfx('swing', { x: a.pos.x, z: a.pos.z, vol: a.isPlayer ? 0.7 : 0.35 });
       const f = v2.set(Math.sin(a.aimYaw), 0, Math.cos(a.aimYaw));
@@ -285,6 +297,19 @@ export function createGame({ scene, park, fx, ui }) {
         g.summons.push({ kind: 'wave', mesh: q, model: p.model, life: 0.35, max: 0.35, vel: f.clone().multiplyScalar(14) });
       } else fx.burst(at, [0xffffff, a.spec.accent], 8, { speed: 4, up: 2, life: 0.35, size: 0.8, gravity: 2 });
     }
+  }
+
+  function lunge(a, aim, attack) {
+    travel.subVectors(aim, a.pos).setY(0);
+    const distance = travel.length();
+    const step = Math.min(attack.lunge, distance - attack.range * 0.5);
+    if (step <= 0) return;
+    const { halfX, halfZ } = park.bounds;
+    travel.multiplyScalar(step / distance);
+    const wall = park.obstacleHit(a.pos, travel, a.radius);
+    const edgeX = travel.x ? (Math.sign(travel.x) * (halfX - 1) - a.pos.x) / travel.x : Infinity;
+    const edgeZ = travel.z ? (Math.sign(travel.z) * (halfZ - 1) - a.pos.z) / travel.z : Infinity;
+    a.pos.addScaledVector(travel, Math.max(0, Math.min(1, wall - 0.001 / step, edgeX, edgeZ)));
   }
 
   function nearestHostile(a, range = Infinity) {
@@ -493,29 +518,59 @@ export function createGame({ scene, park, fx, ui }) {
   }
 
   // ---------- projectiles & summons ----------
+  function groundHit(pos, delta) {
+    const endY = pos.y + delta.y;
+    if (Math.min(pos.y, endY) > 0) return Infinity;
+    const land = pos.y <= 0 ? 0 : -pos.y / delta.y;
+    const waterAt = t => park.isWater(pos.x + delta.x * t, pos.z + delta.z * t);
+    if (!waterAt(land) || pos.y <= park.waterLevel) return land;
+    const water = delta.y < 0 ? (park.waterLevel - pos.y) / delta.y : Infinity;
+    let end = endY > 0 ? -pos.y / delta.y : Math.min(1, water);
+    if (waterAt(end)) return water <= 1 ? water : Infinity;
+    // shortcut: bracket one outer-shore crossing per frame, use a terrain sweep for narrow inlets.
+    let start = land;
+    for (let i = 0; i < 8; i++) {
+      const mid = (start + end) / 2;
+      if (waterAt(mid)) start = mid; else end = mid;
+    }
+    return end;
+  }
+
   function stepProjectiles(dt) {
     for (let i = g.projectiles.length - 1; i >= 0; i--) {
       const p = g.projectiles[i];
-      p.vel.y -= p.gravity * dt;
-      p.pos.addScaledVector(p.vel, dt);
+      const step = Math.min(dt, p.life);
+      p.vel.y -= p.gravity * step;
+      travel.copy(p.vel).multiplyScalar(step);
       p.life -= dt;
-      if (p.spin) p.mesh.rotation.x += p.spin * dt;
-      else p.mesh.lookAt(v1.copy(p.pos).add(p.vel));
+      const ground = groundHit(p.pos, travel);
+      let first = Math.min(ground, park.projectileObstacleHit(p.pos, travel));
+      const length = travel.length();
+      shotRay.origin.copy(p.pos);
+      shotRay.direction.copy(p.vel).normalize();
       let hit = null;
       for (const t of g.actors) {
         if (!t.alive || !hostile(p.owner, t)) continue;
-        if (center(t, v2).distanceTo(p.pos) < t.radius + p.r + (t.isBoss ? 0.6 : 0.15)) { hit = t; break; }
+        center(t, hitSphere.center);
+        hitSphere.radius = t.radius + p.r + (t.isBoss ? 0.6 : 0.15);
+        let at = 0;
+        if (!hitSphere.containsPoint(p.pos)) {
+          if (!length || !shotRay.intersectSphere(hitSphere, impact)) continue;
+          at = p.pos.distanceTo(impact) / length;
+        }
+        if (at <= 1 && at < first) { hit = t; first = at; }
       }
-      const ground = park.isWater(p.pos.x, p.pos.z) ? park.waterLevel : 0;
-      const wall = park.blocked(p.pos.x, p.pos.z, p.pos.y);
-      if (!hit && !wall && p.pos.y > ground && p.life > 0) continue;
+      p.pos.addScaledVector(travel, Math.min(1, first));
+      if (p.spin) p.mesh.rotation.x += p.spin * step;
+      else p.mesh.lookAt(v1.copy(p.pos).add(p.vel));
+      if (first === Infinity && p.life > 0) continue;
       if (p.splash) {
         explode(p.owner, p.pos, p.splash, p.dmg, p.knock);
       } else if (hit) {
         damage(hit, p.dmg, p.owner, v2.set(p.vel.x, 0, p.vel.z).normalize(), p.knock);
         fx.burst(p.pos, [0xffffff, p.owner.spec.accent], 6, { speed: 3, up: 3, life: 0.35, size: 0.7 });
       } else {
-        const wet = p.pos.y <= ground && park.isWater(p.pos.x, p.pos.z);
+        const wet = ground <= 1 && first === ground && park.isWater(p.pos.x, p.pos.z);
         fx.burst(p.pos, wet ? [0x9fd8ff, 0xffffff] : [0xc8b18a, 0x8fbf5a], 5, { speed: 2, up: 3, life: 0.35, size: 0.6 });
       }
       release(p.mesh, p.model);
@@ -868,15 +923,7 @@ export function createGame({ scene, park, fx, ui }) {
     stepProjectiles(dt);
     stepSummons(dt);
     stepPickups(dt);
-    for (const a of g.actors) {
-      if (a.isBoss) continue;
-      a.model.root.position.copy(a.pos);
-      a.model.root.rotation.y = a.yaw;
-      a.model.root.visible = !(a.invulnT > 0 && a.alive && a.diveT <= 0 && Math.floor(g.time * 14) % 2 === 0);
-      a.ring.visible = a.alive;
-      if (a.crown) { a.crown.visible = a.alive; a.crown.position.y = a.model.height + 0.1 - (a.anim.swim ? 0.3 : 0); }
-      a.ring.position.set(a.pos.x, (a.inWater ? park.waterLevel : 0) + 0.04, a.pos.z);
-    }
+    for (const a of g.actors) if (!a.isBoss) syncActor(a);
     if (g.boss) { g.boss.model.root.position.copy(g.boss.pos); g.boss.model.root.rotation.y = g.boss.yaw; }
     ui.chat.update(dt);
   }

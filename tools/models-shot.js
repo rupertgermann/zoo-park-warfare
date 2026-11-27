@@ -2,7 +2,7 @@
 // shot = name:querystring, e.g. "move:anim=move". Writes .audit/shots/models-<name>.png, prints stats + console errors.
 import { launch } from './chrome.mjs';
 
-const base = process.env.BASE || 'http://localhost:5201/tools/models.html';
+const base = process.env.BASE || 'http://localhost:5199/tools/models.html';
 const shots = process.argv.slice(2).map(s => s.split(/:(.*)/s));
 const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
